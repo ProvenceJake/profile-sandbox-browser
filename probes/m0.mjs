@@ -63,6 +63,7 @@ async function inspectBrowser(browser, expectedNode, marker, origin) {
   await eventually(async () => assert.equal(await evaluate('typeof window.probe'), 'object'), 'loading fixture');
   const echo = await evaluate('fetch("/echo").then(r=>r.json())');
   assert.equal(echo.node, expectedNode);
+  assert.equal(await evaluate('fetch("/cached").then(r=>r.text())'), expectedNode);
   assert.deepEqual(await evaluate('probe.markers()'), ['', null, null, null]);
   await evaluate('probe.markers(' + JSON.stringify(marker) + ')');
   const contexts = await evaluate('probe.readContexts()', true);
@@ -139,6 +140,7 @@ try {
   }
   for (const [i, page] of pages.entries()) {
     const marker = 'profile' + i;
+    assert.equal(await page.evaluate('fetch("/cached",{cache:"only-if-cached",mode:"same-origin"}).then(r=>r.text())'), profiles[i][2]);
     assert.deepEqual(await page.evaluate('probe.markers()'), ['marker=' + marker, marker, marker, marker]);
     assert.equal(await page.evaluate('fetch("/echo").then(r=>r.json()).then(x=>x.node)'), profiles[i][2]);
   }

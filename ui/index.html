@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Profile Harbor</title>
+    <link rel="stylesheet" href="style.css" />
+    <script defer src="app.js"></script>
+  </head>
+  <body>
+    <aside>
+      <div class="brand">
+        <img src="icon.png" alt="" /><strong>Profile Harbor</strong>
+      </div>
+      <nav aria-label="导航">
+        <button data-nav="profiles">◫　浏览器 Profile</button
+        ><button data-nav="nodes">⇄　节点与订阅</button
+        ><button data-nav="history">◷　运行记录</button
+        ><button data-nav="runtime">⚙　运行时</button>
+      </nav>
+      <div class="sidefoot">
+        <i id="coreDot"></i><span id="coreLabel">正在连接管理器</span>
+      </div>
+    </aside>
+    <main>
+      <header>
+        <div>
+          <h1 id="title">浏览器 Profile</h1>
+          <p id="subtitle"></p>
+        </div>
+        <div id="actions"></div>
+      </header>
+      <div id="notice" role="status" hidden></div>
+      <section id="content" aria-live="polite"></section>
+    </main>
+    <dialog id="dialog">
+      <form id="form">
+        <div class="modalhead">
+          <h2 id="dialogTitle"></h2>
+          <button type="button" id="dismiss" class="close" aria-label="关闭">
+            ×
+          </button>
+        </div>
+        <div id="fields"></div>
+        <p id="formError" role="alert" hidden></p>
+        <footer>
+          <button type="button" id="cancel">取消</button
+          ><button type="submit" class="primary" id="submit">保存</button>
+        </footer>
+      </form>
+    </dialog>
+  </body>
+</html>

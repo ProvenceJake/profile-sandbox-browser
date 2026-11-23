@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+  <meta charset="utf-8" /><title>PROFILE_LABEL · Profile Harbor</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      font:
+        16px/1.6 -apple-system,
+        "PingFang SC",
+        sans-serif;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: #f4f7f3;
+      color: #1a3d39;
+    }
+    main {
+      max-width: 600px;
+      padding: 32px;
+    }
+    h1 {
+      font-size: clamp(32px, 5vw, 56px);
+      line-height: 1.15;
+      margin: 12px 0;
+      overflow-wrap: anywhere;
+    }
+    small {
+      color: #26705c;
+    }
+    kbd {
+      border: 1px solid #aebfb5;
+      border-radius: 5px;
+      padding: 2px 7px;
+    }
+    @media (prefers-color-scheme: dark) {
+      body {
+        background: #172a29;
+        color: #e6f0e9;
+      }
+      small {
+        color: #90cfb1;
+      }
+    }
+  </style>
+  <main>
+    <small>Profile Harbor · 出口已校验</small>
+    <h1>PROFILE_LABEL</h1>
+    <p>按 <kbd>⌘ L</kbd> 在地址栏输入网址。</p>
+  </main>
+</html>
