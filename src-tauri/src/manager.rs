@@ -635,12 +635,24 @@ mod tests {
             let nodes = m.store.nodes()?;
             let node = |i: usize| nodes[i]["id"].as_str().unwrap();
             let mut ids = vec![];
-            for i in 0..5 {
-                m.act("save",json!({"name":format!("Browser {i}"),"node":node(i),"auto":false,"env":{"zone":"Asia/Tokyo","locale":"ja-JP","lat":35.68,"lng":139.69}}))?;
+            let environments = [
+                ("Asia/Tokyo", "ja-JP"),
+                ("America/Toronto", "fr-CA"),
+                ("Europe/Berlin", "de-DE"),
+                ("America/Sao_Paulo", "pt-BR"),
+                ("America/New_York", "en-US"),
+            ];
+            for (i, (zone, language)) in environments.into_iter().enumerate() {
+                m.act("save",json!({"name":format!("Browser {i}"),"node":node(i),"auto":false,"env":{"zone":zone,"locale":language,"lat":35.68,"lng":139.69}}))?;
                 let id = m.store.profiles()?.last().unwrap().id.clone();
                 m.act("start", json!({"id":id}))?;
                 assert!(m.live.contains_key(&id));
                 ids.push(id);
+            }
+            for id in &ids {
+                m.live[id]
+                    .browser
+                    .audit_locales(&format!("http://localhost:{}/", ports[0]))?;
             }
             let k = &ids[0];
             m.act("clone", json!({"id":k}))?;

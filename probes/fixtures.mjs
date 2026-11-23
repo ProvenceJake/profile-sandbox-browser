@@ -2,7 +2,7 @@ import {readFile} from 'node:fs/promises';
 import http from 'node:http';
 import {once} from 'node:events';
 
-const environment = '({zone:Intl.DateTimeFormat().resolvedOptions().timeZone,language:navigator.language,languages:navigator.languages})';
+const environment = '({zone:Intl.DateTimeFormat().resolvedOptions().timeZone,dateLocale:Intl.DateTimeFormat().resolvedOptions().locale,numberLocale:Intl.NumberFormat().resolvedOptions().locale,language:navigator.language,languages:navigator.languages})';
 const fixtureScript = await readFile(new URL('../tests/fixtures/page.js', import.meta.url), 'utf8');
 
 export async function startFixture(name, trace = 'ip=192.0.2.1\nloc=JP') {
@@ -15,6 +15,7 @@ export async function startFixture(name, trace = 'ip=192.0.2.1\nloc=JP') {
     }
     const files = {
       '/': ['text/html', '<!doctype html><meta charset="utf-8"><title>Profile probe</title><script src="/page.js" defer></script>'],
+      '/format-frame': ['text/html', '<!doctype html><script>parent.postMessage(' + environment + ', "*")</script>'],
       '/page.js': ['text/javascript', fixtureScript],
       '/trace': ['text/plain',trace],
       '/cached': ['text/plain', name],

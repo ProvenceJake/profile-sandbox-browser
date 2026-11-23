@@ -2,6 +2,8 @@ function getEnvironment(context = window) {
   const {navigator, Intl} = context;
   return {
     zone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    dateLocale: Intl.DateTimeFormat().resolvedOptions().locale,
+    numberLocale: Intl.NumberFormat().resolvedOptions().locale,
     language: navigator.language,
     languages: [...navigator.languages]
   };
@@ -39,6 +41,25 @@ async function readContexts() {
   return result;
 }
 
+async function readFormatContexts() {
+  const result = await readContexts();
+  const frame = document.createElement('iframe');
+  const origin = 'http://format.harbor-probe.invalid';
+  try {
+    result.crossSiteFrame = await new Promise(resolve => {
+      function receive(event) {
+        if (event.origin !== origin || event.source !== frame.contentWindow) return;
+        window.removeEventListener('message', receive);
+        resolve(event.data);
+      }
+      window.addEventListener('message', receive);
+      frame.src = origin + '/format-frame';
+      document.body.append(frame);
+    });
+  } finally { frame.remove(); }
+  return result;
+}
+
 async function markers(writeValue) {
   const db = await new Promise((resolve, reject) => {
     const open = indexedDB.open('probe', 1);
@@ -69,4 +90,4 @@ async function markers(writeValue) {
   } finally { db.close(); }
 }
 
-window.probe = {readContexts, markers};
+window.probe = {readContexts, readFormatContexts, markers};

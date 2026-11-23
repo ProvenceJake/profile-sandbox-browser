@@ -217,6 +217,22 @@ impl Browser {
                             &json!({"id":seq.fetch_add(1,Ordering::Relaxed),"method":method,"params":data,"sessionId":session}),
                         )
                     };
+                    // The macOS application language and ICU's formatting locale are
+                    // independent. Queue the ICU override before resuming each target.
+                    if matches!(
+                        kind,
+                        "page"
+                            | "iframe"
+                            | "webview"
+                            | "worker"
+                            | "shared_worker"
+                            | "service_worker"
+                    ) {
+                        let locale = rules.lock().unwrap().locale.clone();
+                        if send("Emulation.setLocaleOverride", json!({"locale":locale})).is_err() {
+                            break;
+                        }
+                    }
                     if matches!(kind, "page" | "iframe" | "webview") {
                         if let Some(id) = session.as_str() {
                             sessions.lock().unwrap().insert(id.into());
@@ -371,7 +387,7 @@ impl Browser {
                 json!({"url":"about:blank"}),
                 Some(&session),
             )?;
-            let script = r#"(async()=>{let env=()=>[Intl.DateTimeFormat().resolvedOptions().timeZone,navigator.language];let u=URL.createObjectURL(new Blob(["postMessage(("+env.toString()+")())"],{type:"text/javascript"}));try{let w=new Worker(u);return [env(),await new Promise((resolve,reject)=>{w.onmessage=e=>{w.terminate();resolve(e.data)};w.onerror=reject})]}finally{URL.revokeObjectURL(u)}})()"#;
+            let script = include_str!("environment-check.js");
             let result = self.call(
                 "Runtime.evaluate",
                 json!({"expression":script,"awaitPromise":true,"returnByValue":true}),
@@ -379,22 +395,63 @@ impl Browser {
             )?;
             let rows = result["result"]["value"]
                 .as_array()
+                .filter(|v| v.len() == 2)
                 .context("页面或 Worker 环境自检失败")?;
             let canonical=self.call("Runtime.evaluate",json!({"expression":format!("new Intl.DateTimeFormat('en',{{timeZone:{}}}).resolvedOptions().timeZone",serde_json::to_string(&self.env.zone)?),"returnByValue":true}),Some(&session))?["result"]["value"].clone();
             for row in rows {
-                ensure!(
-                    row[0] == canonical
-                        && row[1]
+                ensure!(row["zone"] == canonical, "浏览器时区与配置不一致");
+                for field in ["language", "dateLocale", "numberLocale"] {
+                    ensure!(
+                        row[field]
                             .as_str()
                             .is_some_and(|v| v.eq_ignore_ascii_case(&self.env.locale)),
-                    "浏览器时区或语言与配置不一致"
-                );
+                        "浏览器语言或默认格式与配置不一致（{field}）"
+                    );
+                }
             }
             Ok(())
         })();
         let _ = self.call("Target.closeTarget", json!({"targetId":target}), None);
         result
     }
+    #[cfg(test)]
+    pub fn audit_locales(&self, origin: &str) -> Result<()> {
+        let target = self.call("Target.createTarget", json!({"url":"about:blank"}), None)?;
+        let session = self.call(
+            "Target.attachToTarget",
+            json!({"targetId":target["targetId"],"flatten":true}),
+            None,
+        )?;
+        let id = session["sessionId"].as_str();
+        self.call("Page.navigate", json!({"url":origin}), id)?;
+        let script = r#"(async()=>{if(document.readyState!=="complete"){await new Promise(resolve=>window.addEventListener("load",resolve,{once:true}));}return probe.readFormatContexts();})()"#;
+        let result=self.call("Runtime.evaluate",json!({"expression":script,"awaitPromise":true,"returnByValue":true,"userGesture":true}),id)?;
+        let rows = result["result"]["value"]
+            .as_object()
+            .context("网页上下文自检失败")?;
+        for ctx in [
+            "page",
+            "frame",
+            "crossSiteFrame",
+            "popup",
+            "worker",
+            "shared",
+            "service",
+        ] {
+            let row = rows.get(ctx).context("缺少测试结果")?;
+            ensure!(row["zone"] == self.env.zone, "{ctx} 时区错误");
+            for field in ["language", "dateLocale", "numberLocale"] {
+                ensure!(row[field] == self.env.locale, "{ctx} {field} 不匹配");
+            }
+        }
+        self.call(
+            "Target.closeTarget",
+            json!({"targetId":target["targetId"]}),
+            None,
+        )?;
+        Ok(())
+    }
+
     #[cfg(test)]
     pub fn audit_ice(&self, origin: &str) -> Result<()> {
         let udp = std::net::UdpSocket::bind(("127.0.0.1", 0))?;
