@@ -90,6 +90,7 @@ fn check_lock(dir: &Path) -> Result<()> {
 }
 pub struct Browser {
     pub child: Child,
+    initial_target: String,
     writer: Writer,
     pending: Pending,
     seq: Arc<AtomicU64>,
@@ -120,6 +121,7 @@ impl Browser {
             .args([
                 "--remote-debugging-pipe",
                 "--no-first-run",
+                "--no-startup-window",
                 "--no-default-browser-check",
                 "--disable-background-networking",
                 "--disable-component-update",
@@ -133,6 +135,9 @@ impl Browser {
             ])
             .arg(format!("--user-data-dir={}", dir.display()))
             .arg(format!("--proxy-server=http://127.0.0.1:{port}"))
+            // Cocoa selects Chrome UI resources from the process argument domain.
+            .arg("-AppleLanguages")
+            .arg(format!("({})", p.env.locale))
             .arg(format!("--lang={}", p.env.locale))
             .arg(format!(
                 "--accept-lang={},{}",
@@ -141,9 +146,7 @@ impl Browser {
             ));
         #[cfg(test)]
         cmd.arg("--headless=new");
-        cmd.arg("about:blank")
-            .stdout(Stdio::null())
-            .stderr(Stdio::null());
+        cmd.stdout(Stdio::null()).stderr(Stdio::null());
         unsafe {
             cmd.pre_exec(move || {
                 if libc::dup2(a, 3) < 0 || libc::dup2(b, 4) < 0 {
@@ -161,8 +164,9 @@ impl Browser {
         let events: EventRoutes = Default::default();
         let title_script = include_str!("window-title.js")
             .replace("PROFILE_NAME", &serde_json::to_string(&p.name)?);
-        let browser = Self {
+        let mut browser = Self {
             child,
+            initial_target: String::new(),
             sessions: sessions.clone(),
             events: events.clone(),
             writer: writer.clone(),
@@ -264,6 +268,13 @@ impl Browser {
             json!({"autoAttach":true,"flatten":true,"waitForDebuggerOnStart":true}),
             None,
         )?;
+        // Create the initial tab explicitly so Chrome never navigates to the
+        // positional value of -AppleLanguages.
+        browser.initial_target =
+            browser.call("Target.createTarget", json!({"url":"about:blank"}), None)?["targetId"]
+                .as_str()
+                .context("首个浏览器标签页创建失败")?
+                .to_owned();
         Ok(browser)
     }
     fn call(&self, method: &str, params: Value, session: Option<&str>) -> Result<Value> {
@@ -287,7 +298,12 @@ impl Browser {
         });
         self.pending.lock().unwrap().remove(&id);
         let answer = result?;
-        ensure!(answer.get("error").is_none(), "浏览器指令 {method} 未成功");
+        if let Some(error) = answer.get("error") {
+            bail!(
+                "浏览器指令 {method} 未成功（{}）",
+                error["message"].as_str().unwrap_or("未知错误")
+            );
+        }
         Ok(answer["result"].clone())
     }
     pub fn tabs(&self) -> Result<usize> {
@@ -445,6 +461,23 @@ impl Browser {
             }
         }
         self.call(
+            "Page.navigate",
+            json!({"url":"chrome://settings/languages"}),
+            id,
+        )?;
+        let result = self.call(
+            "Runtime.evaluate",
+            json!({"expression":"(async () => { if (document.readyState !== 'complete') await new Promise(resolve => window.addEventListener('load', resolve, {once:true})); return document.documentElement.lang; })()", "awaitPromise":true, "returnByValue":true}),
+            id,
+        )?;
+        let language = result["result"]["value"]
+            .as_str()
+            .context("无法读取 Chrome 界面语言")?;
+        ensure!(
+            language.split('-').next() == self.env.locale.split('-').next(),
+            "Chrome 设置页语言错误（{language}）"
+        );
+        self.call(
             "Target.closeTarget",
             json!({"targetId":target["targetId"]}),
             None,
@@ -527,17 +560,9 @@ impl Browser {
         Ok(r["errorText"].is_string())
     }
     pub fn ready_page(&self, p: &Profile) -> Result<()> {
-        let targets = self.call("Target.getTargets", json!({}), None)?;
-        let target = targets["targetInfos"]
-            .as_array()
-            .and_then(|rows| {
-                rows.iter()
-                    .find(|v| v["type"] == "page" && v["url"] == "about:blank")
-            })
-            .context("找不到首个浏览器标签页")?;
         let attached = self.call(
             "Target.attachToTarget",
-            json!({"targetId":target["targetId"],"flatten":true}),
+            json!({"targetId":self.initial_target,"flatten":true}),
             None,
         )?;
         let session = attached["sessionId"].as_str().context("启动页会话不可用")?;

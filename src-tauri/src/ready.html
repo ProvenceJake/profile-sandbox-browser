@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html>
   <meta charset="utf-8" /><title>PROFILE_LABEL · Profile Harbor</title>
   <style>
     :root {
@@ -30,11 +30,7 @@
     small {
       color: #26705c;
     }
-    kbd {
-      border: 1px solid #aebfb5;
-      border-radius: 5px;
-      padding: 2px 7px;
-    }
+    time { display: block; }
     @media (prefers-color-scheme: dark) {
       body {
         background: #172a29;
@@ -46,8 +42,25 @@
     }
   </style>
   <main>
-    <small>Profile Harbor · 出口已校验</small>
+    <small>Profile Harbor</small>
     <h1>PROFILE_LABEL</h1>
-    <p>按 <kbd>⌘ L</kbd> 在地址栏输入网址。</p>
+    <p id="region"></p>
+    <time id="clock"></time>
+    <script>
+      const locale = navigator.language;
+      document.documentElement.lang = locale;
+      document.documentElement.dir = "auto";
+      const format = new Intl.DateTimeFormat(locale, { dateStyle: "full", timeStyle: "short" });
+      const language = new Intl.DisplayNames([locale], { type: "language" }).of(locale);
+      document.getElementById("region").textContent = language + " · " + format.resolvedOptions().timeZone;
+      const clock = document.getElementById("clock");
+      function tick() {
+        const now = new Date();
+        clock.dateTime = now.toISOString();
+        clock.textContent = format.format(now);
+        setTimeout(tick, 60000 - now.getTime() % 60000);
+      }
+      tick();
+    </script>
   </main>
 </html>

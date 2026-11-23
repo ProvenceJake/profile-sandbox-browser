@@ -184,7 +184,7 @@ function profileCards() {
           info("最近出口", p.ip || "待校验") +
           info(
             "地区环境",
-            p.auto && !p.ip ? "启动时推导" : p.env.zone + " · " + p.env.locale,
+            p.auto && !p.ip ? "启动时根据出口推导" : p.env.zone + " · " + p.env.locale,
           ) +
           (m
             ? info(
@@ -446,6 +446,44 @@ function draw() {
       $("cards").innerHTML = profileCards();
     };
 }
+const languageNames = new Intl.DisplayNames(["zh-CN"], { type: "language" });
+const localePresets = [
+  "zh-CN", "zh-HK", "zh-TW", "en-GB", "en-US", "en-CA", "en-AU", "en-SG",
+  "ja-JP", "ko-KR", "de-DE", "fr-FR", "fr-CA", "es-ES", "it-IT", "pt-BR",
+].map((id) => ({ id, name: languageNames.of(id) + " · " + id }));
+const zonePresets = [
+  ["Europe/London", "伦敦"], ["Asia/Shanghai", "北京、上海"], ["Asia/Hong_Kong", "香港"],
+  ["Asia/Taipei", "台北"], ["Asia/Tokyo", "东京"], ["Asia/Seoul", "首尔"],
+  ["Asia/Singapore", "新加坡"], ["America/New_York", "纽约"], ["America/Chicago", "芝加哥"],
+  ["America/Denver", "丹佛"], ["America/Los_Angeles", "洛杉矶"], ["America/Toronto", "多伦多"],
+  ["Europe/Paris", "巴黎"], ["Europe/Berlin", "柏林"], ["Australia/Sydney", "悉尼"],
+  ["UTC", "协调世界时"],
+].map(([id, city]) => ({ id, name: city + " · " + id }));
+function environmentPicker(key, label, rows, value) {
+  const selected = rows.some((row) => row.id === value) ? value : "";
+  return '<label>' + label + '<select name="' + key + 'Choice">' +
+    options([...rows, { id: "", name: "自定义…" }], selected) + '</select></label>' +
+    input(key, "自定义" + label, value, "text", 'spellcheck="false"');
+}
+function selectedEnvironment(form) {
+  const read = (key) => form[key + "Choice"] || form[key]?.trim() || "";
+  const zone = read("zone"), tag = read("locale");
+  let locale;
+  try {
+    [locale] = Intl.getCanonicalLocales(tag);
+    if (!locale || !Intl.DateTimeFormat.supportedLocalesOf([locale]).length) throw Error();
+  } catch {
+    throw Error("请输入有效且受支持的语言标签，例如 en-GB。");
+  }
+  try {
+    const date = new Intl.DateTimeFormat(locale, {
+      timeZone: zone, dateStyle: "full", timeStyle: "short",
+    });
+    return { zone, locale, preview: date.format(new Date()) };
+  } catch {
+    throw Error("请输入有效的城市时区，例如 Europe/London。");
+  }
+}
 function editProfile(p) {
   if (!state.nodes.length) {
     notice("先添加一个代理节点，然后就可以创建 Profile。");
@@ -465,10 +503,10 @@ function editProfile(p) {
     input("name", "名称", p?.name, "text", 'required maxlength="100"') +
       '<label>绑定节点<select name="node">' +
       nodeOptions(p?.node) +
-      '</select></label><label>地区环境<select name="mode" id="mode"><option value="auto">根据出口自动推导</option><option value="manual">手动设置</option></select></label><div id="manual"><div class="pair">' +
-      input("zone", "IANA 时区", env.zone) +
-      input("locale", "语言", env.locale) +
-      '</div><div class="pair">' +
+      '</select></label><label>地区环境<select name="mode" id="mode"><option value="auto">根据出口自动推导</option><option value="manual">手动设置</option></select></label><fieldset id="manual" aria-label="手动地区设置"><div class="pair">' +
+      '<div>' + environmentPicker("locale", "语言", localePresets, env.locale) + '</div><div>' +
+      environmentPicker("zone", "时区", zonePresets, env.zone) +
+      '</div></div><p id="localPreview" class="hint" role="status"></p><div class="pair">' +
       input("lat", "纬度", env.lat, "number", 'step="any" min="-90" max="90"') +
       input(
         "lng",
@@ -477,17 +515,18 @@ function editProfile(p) {
         "number",
         'step="any" min="-180" max="180"',
       ) +
-      '</div></div><p class="hint" id="geoHint">首次使用自动环境时会下载并校验离线城市库。</p>',
+      '</div></fieldset><p class="hint" id="geoHint">首次使用自动环境时会下载并校验离线城市库。</p>',
     "保存",
     async (d) => {
+      const selected = d.mode === "manual" ? selectedEnvironment(d) : env;
       await invoke("save", {
         id: p?.id || "",
         name: d.name,
         node: d.node,
         auto: d.mode === "auto",
         env: {
-          zone: d.zone,
-          locale: d.locale,
+          zone: selected.zone,
+          locale: selected.locale,
           lat: Number(d.lat),
           lng: Number(d.lng),
         },
@@ -498,10 +537,31 @@ function editProfile(p) {
   $("mode").value = p?.auto === false ? "manual" : "auto";
   const change = () => {
     $("manual").hidden = $("mode").value === "auto";
+    $("manual").disabled = $("manual").hidden;
     $("geoHint").hidden = !$("manual").hidden;
   };
-  $("mode").onchange = change;
+  if (p?.auto && p.ip) {
+    $("geoHint").textContent = "最近一次出口校验 · " + env.locale + " · " + env.zone;
+  }
+  const form = $("form");
+  const preview = () => {
+    for (const key of ["locale", "zone"]) {
+      const custom = form.elements[key];
+      custom.disabled = Boolean(form.elements[key + "Choice"].value);
+      custom.closest("label").hidden = custom.disabled;
+    }
+    if ($("manual").hidden) return;
+    try {
+      const result = selectedEnvironment(Object.fromEntries(new FormData(form)));
+      $("localPreview").textContent = "当地时间预览 · " + result.preview;
+    } catch (err) {
+      $("localPreview").textContent = err.message;
+    }
+  };
+  $("manual").oninput = preview;
+  $("mode").onchange = () => { change(); preview(); };
   change();
+  preview();
 }
 function sourceForm(existing) {
   const modes = existing ? "" : '<option value="url">订阅 URL</option>';

@@ -4,11 +4,11 @@
 
 ## 安装与开始使用
 
-从私有仓库的 [macOS 预发布版本](https://github.com/ProvenceJake/profile-sandbox-browser/releases/tag/v0.9.1) 下载 ZIP，解压后打开 Profile Harbor.app。本版本使用本机临时签名，Developer ID 签名及 Apple 公证仍待完成。
+从私有仓库的 [macOS 预发布版本](https://github.com/ProvenceJake/profile-sandbox-browser/releases/tag/v0.9.2) 下载 ZIP，解压后打开 Profile Harbor.app。本版本使用本机临时签名，Developer ID 签名及 Apple 公证仍待完成。
 
 1. 在「节点与订阅」添加 HTTP/SOCKS5 节点，或导入含 proxies 列表的 Clash/Mihomo YAML 文件或订阅 URL。单个节点的其他受支持协议也可用 YAML 导入。来源中的名称用于在刷新后匹配节点。
-2. 在「浏览器 Profile」创建工作区并绑定节点。自动模式首次使用时下载 DB-IP 离线城市库，手动模式可指定时区、语言和坐标。Profile 时区决定本地时间的显示方式；浏览器与 Mac 共用实际时钟。
-3. 点击「启动」。管理器先经绑定节点验证出口，再从 Chrome 检查出口、请求头，以及页面和 Worker 的时区、首选语言、默认日期与数字格式。浏览器首页显示 Profile 名称。网页地理位置权限继续由用户逐站授权。
+2. 在「浏览器 Profile」创建工作区并绑定节点。自动模式首次使用时下载 DB-IP 离线城市库，手动模式可按中文名称选择语言和城市时区，预览当地时间，也支持自定义语言标签、时区和坐标。Profile 时区决定本地时间的显示方式；浏览器与 Mac 共用实际时钟。
+3. 点击「启动」。管理器先经绑定节点验证出口，再从 Chrome 检查出口、请求头，以及页面和 Worker 的时区、首选语言、默认日期与数字格式。浏览器首页显示 Profile 名称、语言、时区与当地时间。Chrome 内置界面使用其支持的对应语言。网页地理位置权限继续由用户逐站授权。
 4. 在运行卡片上查看资源、停止或切换节点。出口地区变化时可更新环境、保留原环境或取消。切换时关闭此 Profile 的旧网络连接，更改时区或语言会重新启动该浏览器。
 5. 关闭管理窗口后可从菜单栏重新打开，或选择停止所有 Profile 并退出。运行记录支持查看事件、启动耗时、P50/P95 和按 Profile 筛选的资源采样。
 

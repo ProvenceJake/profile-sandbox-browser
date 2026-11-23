@@ -410,3 +410,13 @@ summary {
   color: var(--accent);
   cursor: pointer;
 }
+
+#manual {
+  padding: 0;
+  margin: 0;
+  border: 0;
+  min-width: 0;
+}
+#manual .pair > div {
+  min-width: 0;
+}
