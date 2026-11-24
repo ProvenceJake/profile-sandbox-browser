@@ -1,40 +1,46 @@
 # Profile Harbor
 
-适用于 macOS 15 及以上、Apple Silicon 的多 Profile 浏览器管理器。每个 Profile 使用独立的 Chrome 进程和数据目录，最多五个同时运行。管理器由 Rust 和 Tauri 2 实现，界面为本地 WebView。
+**English** · [简体中文](README.zh-CN.md)
 
-## 安装与开始使用
+Profile Harbor is a macOS menu bar app for running up to five Google Chrome profiles at once on an Apple Silicon Mac. Each profile has its own browser process, data directory, and proxy connection. The profile list shows its exit IP and time zone, including the last verified exit after you stop it.
 
-从私有仓库的 [macOS 预发布版本](https://github.com/ProvenceJake/profile-sandbox-browser/releases/tag/v0.9.3) 下载 ZIP，解压后打开 Profile Harbor.app。本版本使用本机临时签名，Developer ID 签名及 Apple 公证仍待完成。
+The manager is built with Rust and Tauri 2. Its local WebView interface is in Simplified Chinese. The steps below include the labels you’ll see in the app.
 
-1. 在「节点与订阅」添加 HTTP/SOCKS5 节点，或导入含 proxies 列表的 Clash/Mihomo YAML 文件或订阅 URL。单个节点的其他受支持协议也可用 YAML 导入。来源中的名称用于在刷新后匹配节点。
-2. 在「配置文件」创建工作区并绑定节点。自动模式首次使用时下载 DB-IP 离线城市库，手动模式可按中文名称选择语言和城市时区，预览当地时间，也支持自定义语言标签、时区和坐标。Profile 时区决定本地时间的显示方式；浏览器与 Mac 共用实际时钟。
-3. 点击「启动」。管理器先经绑定节点验证出口，再从 Chrome 检查出口、请求头，以及页面和 Worker 的时区、首选语言、默认日期与数字格式。浏览器首页显示 Profile 名称、语言、时区与当地时间。Chrome 内置界面使用其支持的对应语言。网页地理位置权限继续由用户逐站授权。
-4. 首页逐项显示出口 IP 和时区，停止后标出上次出口，首次启动前显示待校验。运行时可停止浏览器，或在「更多操作」中切换节点。出口地区变化时可更新环境、保留原环境或取消。切换时关闭此 Profile 的旧网络连接，更改时区或语言会重新启动该浏览器。
-5. 关闭管理窗口后可从菜单栏重新打开，或选择停止所有 Profile 并退出。运行记录支持查看事件、启动耗时、P50/P95 和按 Profile 筛选的资源采样。
+## Install
 
-## 存储与清理
+Requires macOS 15 or later on Apple Silicon. Download the ZIP from the [macOS prerelease](https://github.com/ProvenceJake/profile-sandbox-browser/releases/tag/v0.9.3), extract it, and open **Profile Harbor.app**. The current build uses an ad hoc signature. Developer ID signing and Apple notarization are pending.
 
-- Chrome 默认复用本机已安装的 Google Chrome。「运行时」支持下载安装固定版官方 Chrome，并切回系统 Chrome。下载内容校验 SHA-256，浏览器启动前验证 Google 签名并检查版本降级。
-- 「复制配置」创建一个使用相同节点和环境的空白浏览器工作区。删除的 Profile 进入回收目录，可从「运行时」恢复或立即清除。管理器运行期间定期清理已保留七天的数据。
-- 元数据和资源采样保存在应用私有目录的 SQLite WAL 数据库，采样保留 30 天。订阅 URL 和节点配置保存在 macOS 钥匙串。Mihomo 工作期间使用私有的临时 provider 文件，内核关闭时清理。
-- 窗口关闭后销毁 WebView。最后一个 Profile 停止五分钟后回收代理内核。每个运行槽位有单独的浏览器代理入口，代理关闭或重新校验时切断旧连接。菜单栏管理器异常退出后，CDP 管道和小型原生守护进程分别负责浏览器和代理内核的退出。
-- 浏览器数据目录隔离以外，macOS 摄像头和麦克风等系统许可按 Chrome 应用包管理。已分配的本机代理入口仅监听回环地址，当前版本没有对其他本机进程实施入口认证。
+## Use a profile
 
-## 构建与验证
+1. Open **Nodes & subscriptions (节点与订阅)**. Add an HTTP or SOCKS5 proxy, import a Clash/Mihomo YAML configuration with a `proxies` list, or enter a subscription URL. YAML imports also support individual nodes using other supported protocols. When you refresh a source, the app matches its nodes by name.
+2. In **Profiles (配置文件)**, create a profile and select its node. Automatic mode downloads the DB-IP offline city database on first use and derives the local settings from the exit IP. Manual mode lets you select a language and city time zone, preview the local time, or enter a language tag, time zone, and coordinates. Chrome uses the Mac’s clock and displays local time in the profile’s time zone.
+3. Click **Start (启动)**. The manager verifies the exit through the selected node, then checks the exit and request language from Chrome. It also checks the time zone, preferred language, and default formatting locale in a page and a worker. The browser’s start page shows the profile name, language, time zone, and local time. Chrome uses the corresponding interface language when available. Websites still need your permission to access geolocation.
+4. On the profile list, check the exit IP and time zone. A new automatic profile shows a pending value until its first check. Use **More actions (更多操作)** to switch nodes. Switching closes the profile’s existing connections. If the exit region changes, you can apply the new settings, keep the previous ones, or cancel. Applying a new time zone or language restarts that browser.
+5. Close the manager window and reopen it from the menu bar, or use the menu bar to stop all profiles and quit. **Activity (运行记录)** shows events, startup times, median and 95th-percentile startup latency, and resource samples by profile.
 
-构建需要 Apple Silicon Mac、Xcode 命令行工具和 Rust stable。脚本获取哈希固定的官方 Mihomo，输出应用包与可上传的 ZIP。
+## Storage and isolation
+
+- **Chrome runtime.** The manager uses the installed Google Chrome by default. Under **Runtime (运行时)** you can download the pinned official Chrome build or switch back to the system installation. The manager verifies the download’s SHA-256 digest, checks Google’s signature before launch, and guards against version downgrades.
+- **Profile data.** Duplicating a profile creates an empty browser workspace with the same node and regional settings. Removed profiles go to the recycle directory. Restore or purge them under Runtime. The manager periodically removes entries that have spent seven days there.
+- **Credentials and diagnostics.** Subscription URLs and node configurations are stored in macOS Keychain. Metadata and resource samples are stored in SQLite in the app’s data directory. Samples are retained for 30 days. Mihomo’s temporary provider files are removed when the proxy core shuts down.
+- **Connections and cleanup.** Each running profile has its own loopback proxy entry point. The manager closes existing connections when the proxy stops or the exit is rechecked. The WebView is released when its window closes, and the proxy core shuts down five minutes after the last profile stops. If the manager crashes, Chrome’s control pipe and a native guard handle browser and proxy shutdown.
+- **Host resources.** Profiles share the Mac’s system fonts and clock. macOS grants camera and microphone permissions to the Chrome application bundle. The loopback proxy ports accept connections from local processes without authentication. See the [desktop validation notes (Chinese)](docs/desktop-0.9.md) for the network tests and their scope.
+
+## Build and test
+
+On an Apple Silicon Mac with Xcode Command Line Tools and stable Rust, run the following from the repository root. The packaging script downloads the official Mihomo archive, verifies its pinned digest, and writes the app bundle and release ZIP to `dist/`.
 
 ```sh
 scripts/package.sh
 ```
 
-本机集成回归需要 Node.js 22+、可用的登录钥匙串和已安装的 Google Chrome。临时 Profile、数据库和节点只用于测试。以下命令在完成打包后运行。
+The local integration tests require Node.js 22 or later, an available login keychain, and an installed copy of Google Chrome. They use temporary profiles, databases, and proxy fixtures. After packaging, run both test suites from the repository root.
 
 ```sh
 HARBOR_TEST_ENGINE="$PWD/dist/Profile Harbor.app/Contents/MacOS/mihomo" node tests/desktop.mjs
 MIHOMO_BIN="$PWD/dist/Profile Harbor.app/Contents/MacOS/mihomo" node probes/m0.mjs
 ```
 
-发布者可为打包脚本设置 MACOS_SIGN_IDENTITY 和 NOTARY_PROFILE，分别用于 Developer ID 签名和 notarytool 凭据配置。构建工作目录为项目内的 .build，发布输出位于 dist，均不进入 Git。
+For a signed and notarized release, the packaging script accepts `MACOS_SIGN_IDENTITY` for the Developer ID identity and `NOTARY_PROFILE` for the notarytool credentials profile. Build files in `.build/` and packages in `dist/` are excluded from Git.
 
-[设计规划](docs/plan-v1.md) · [首轮 M0 记录](docs/m0.md) · [桌面版本验收记录](docs/desktop-0.9.md)
+[Third-party components and data](resources/licenses/Attribution.txt) · [Design plan (Chinese)](docs/plan-v1.md) · [Initial isolation tests (Chinese)](docs/m0.md) · [Desktop validation notes (Chinese)](docs/desktop-0.9.md)
