@@ -163,72 +163,52 @@ function profileCards() {
   const items = state.profiles.filter((p) =>
     p.name.toLowerCase().includes(filter.toLowerCase()),
   );
-  return (
-    items
-      .map((p) => {
-        const running = ["Running", "Paused"].includes(p.state),
-          node = state.nodes.find((n) => n.id === p.node),
-          m = p.metrics;
-        return (
-          '<article class="card"><div class="cardhead"><div class="identity"><div class="avatar">' +
-          e(Array.from(p.name)[0]) +
-          "</div><div><h3>" +
-          e(p.name) +
-          "</h3><small>" +
-          e(node?.name || "绑定节点已移除") +
-          '</small></div></div><span class="pill ' +
-          e(p.state) +
-          '">' +
-          states[p.state] +
-          '</span></div><div class="details">' +
-          info("最近出口", p.ip || "待校验") +
-          info(
-            "地区环境",
-            p.auto && !p.ip ? "启动时根据出口推导" : p.env.zone + " · " + p.env.locale,
-          ) +
-          (m
-            ? info(
-                "内存 / CPU",
-                Math.round(m.memory) + " MB / " + m.cpu.toFixed(1) + "%",
-              ) + info("标签页", m.tabs)
-            : "") +
-          "</div>" +
-          (p.error ? '<p class="error">' + e(p.error) + "</p>" : "") +
-          '<div class="rowactions">' +
-          (running
-            ? button("stop", "停止", p.id) +
-              button(
-                "switch",
-                p.state === "Paused" ? "重新校验" : "切换节点",
-                p.id,
-              )
-            : button("start", "启动", p.id, "primary") +
-              button("edit", "编辑", p.id)) +
-          button("clone", "复制配置", p.id) +
-          (running ? "" : button("delete", "移入回收目录", p.id, "danger")) +
-          "</div></article>"
-        );
-      })
-      .join("") || empty("没有匹配的 Profile", "可以尝试其他名称。")
-  );
+  if (!items.length) return empty("没有匹配的配置文件", "可以尝试其他名称。");
+  return items.map((p) => {
+    const live = p.state === "Running";
+    const active = live || p.state === "Paused";
+    const node = state.nodes.find((n) => n.id === p.node);
+    const ipLabel = p.ip && !live ? "上次出口 IP" : "出口 IP";
+    const zone = p.auto && !p.ip ? "" : p.env.zone;
+    const zoneLabel = p.auto && p.ip && !live ? "上次出口时区" : "时区";
+    const extra = [
+      active
+        ? button("switch", p.state === "Paused" ? "重新校验" : "切换节点", p.id)
+        : button("edit", "编辑", p.id),
+      button("clone", "复制配置", p.id),
+      active ? "" : button("delete", "移入回收目录", p.id, "danger"),
+    ].join("");
+    return `<article class="profile-row">
+      <div class="cardhead">
+        <div class="identity">
+          <div class="avatar" aria-hidden="true">${e(Array.from(p.name)[0])}</div>
+          <div><h3>${e(p.name)}</h3><small>${e(node?.name || "绑定节点已移除")}${zone && p.env.locale ? " · " + e(p.env.locale) : ""}</small></div>
+        </div>
+        <span class="pill ${e(p.state)}">${e(states[p.state])}</span>
+      </div>
+      <dl class="network-fields">
+        <div><dt>${ipLabel}</dt><dd${p.ip ? "" : ' class="pending"'}>${p.ip ? e(p.ip).replaceAll(":", ":<wbr>") : "待启动校验"}</dd></div>
+        <div><dt>${zoneLabel}</dt><dd${zone ? "" : ' class="pending"'}>${e(zone || "待出口校验")}</dd></div>
+      </dl>
+      <div class="profile-controls">
+        ${active ? button("stop", "停止", p.id) : button("start", "启动", p.id, "launch")}
+        <details class="more" name="profile-actions" data-profile="${e(p.id)}"><summary aria-label="${e(p.name)}的更多操作">更多操作</summary><div class="rowactions">${extra}</div></details>
+      </div>
+      ${p.metrics ? '<small class="profile-metrics">' + e(Math.round(p.metrics.memory)) + ' MB · CPU ' + e(p.metrics.cpu.toFixed(1)) + '% · ' + e(p.metrics.tabs) + ' 个标签页</small>' : ""}
+      ${p.error ? '<p class="error">' + e(p.error) + "</p>" : ""}
+    </article>`;
+  }).join("");
 }
 function profilePage() {
   if (!state.profiles.length)
     return empty(
-      "创建第一个浏览器 Profile",
-      "每个 Profile 使用自己的浏览器数据、代理节点和地区环境。",
+      "创建第一个配置文件",
+      "每个配置文件使用自己的浏览器数据、代理节点和地区环境。",
       state.nodes.length ? "new" : "addSource",
-      state.nodes.length ? "创建 Profile" : "先添加节点",
+      state.nodes.length ? "创建配置文件" : "先添加节点",
     );
-  return (
-    '<div class="toolbar"><input id="search" type="search" placeholder="搜索 Profile 名称" aria-label="搜索 Profile" value="' +
-    e(filter) +
-    '"><small>' +
-    state.profiles.length +
-    ' 个 Profile</small></div><div id="cards">' +
-    profileCards() +
-    "</div>"
-  );
+  return '<div class="toolbar profile-toolbar"><label class="search-box"><input id="search" type="search" placeholder="搜索配置文件" aria-label="搜索配置文件" value="' +
+    e(filter) + '"></label></div><div id="cards">' + profileCards() + "</div>";
 }
 function nodesPage() {
   if (!state.sources.length)
@@ -402,7 +382,7 @@ function runtimePage() {
 function draw() {
   if (!state) return;
   const names = {
-    profiles: "浏览器 Profile",
+    profiles: "配置文件",
     nodes: "节点与订阅",
     history: "运行记录",
     runtime: "运行时",
@@ -411,7 +391,7 @@ function draw() {
     ["Running", "Paused"].includes(p.state),
   ).length;
   const desc = {
-    profiles: running + " / 5 个运行槽位已占用",
+    profiles: state.profiles.length + " 个配置文件 · 已占用 " + running + " / 5 个槽位",
     nodes: state.sources.length + " 个来源 · " + state.nodes.length + " 个节点",
     history: "查看启动耗时、出口校验和故障事件",
     runtime: "管理本机浏览器、离线数据和出口校验服务",
@@ -422,19 +402,26 @@ function draw() {
   $("coreLabel").textContent = state.core ? "代理内核运行中" : "代理内核待机";
   document
     .querySelectorAll("[data-nav]")
-    .forEach((b) => b.classList.toggle("active", b.dataset.nav === view));
+    .forEach((b) => {
+      const selected = b.dataset.nav === view;
+      b.classList.toggle("active", selected);
+      if (selected) b.setAttribute("aria-current", "page");
+      else b.removeAttribute("aria-current");
+    });
   $("actions").innerHTML =
     view === "profiles"
-      ? button("new", "＋ 创建 Profile", "", "primary")
+      ? button("new", "＋ 新建配置文件", "", "primary")
       : view === "nodes"
         ? button("addSource", "＋ 添加来源", "", "primary")
         : "";
+  const expanded = new Set(Array.from(document.querySelectorAll(".more[open]"), (menu) => menu.dataset.profile));
   $("content").innerHTML = {
     profiles: profilePage,
     nodes: nodesPage,
     history: historyPage,
     runtime: runtimePage,
   }[view]();
+  document.querySelectorAll(".more").forEach((menu) => { menu.open = expanded.has(menu.dataset.profile); });
   if ($("metricProfile"))
     $("metricProfile").onchange = async (ev) => {
       metricProfile = ev.target.value;
@@ -499,7 +486,7 @@ function editProfile(p) {
     lng: 121.47,
   };
   modal(
-    p ? "编辑 Profile" : "创建 Profile",
+    p ? "编辑配置文件" : "新建配置文件",
     input("name", "名称", p?.name, "text", 'required maxlength="100"') +
       '<label>绑定节点<select name="node">' +
       nodeOptions(p?.node) +
@@ -694,8 +681,19 @@ async function run(op, payload, msg) {
     busy = false;
   }
 }
+document.addEventListener("keydown", (ev) => {
+  if (ev.key !== "Escape") return;
+  const menu = document.querySelector(".more[open]");
+  if (menu) {
+    menu.open = false;
+    menu.querySelector("summary").focus();
+    ev.preventDefault();
+  }
+});
 document.addEventListener("click", async (ev) => {
   const b = ev.target.closest("button");
+  const menu = document.querySelector(".more[open]");
+  if (menu && (b || !menu.contains(ev.target))) menu.open = false;
   if (!b) return;
   if (b.dataset.nav) {
     if (busy) return;
@@ -785,7 +783,7 @@ document.addEventListener("click", async (ev) => {
       if (busy) notice(String(ev.payload) + "…");
     });
     await window.__TAURI__.event.listen("harbor-updated", () => {
-      if (!busy && !$("dialog").open && document.activeElement?.id !== "search")
+      if (!busy && !$("dialog").open && document.activeElement?.id !== "search" && !document.activeElement?.closest(".more[open]"))
         sync().catch((err) => notice(String(err), true));
     });
   } catch (err) {

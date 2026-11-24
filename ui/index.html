@@ -13,10 +13,10 @@
         <img src="icon.png" alt="" /><strong>Profile Harbor</strong>
       </div>
       <nav aria-label="导航">
-        <button data-nav="profiles">◫　浏览器 Profile</button
-        ><button data-nav="nodes">⇄　节点与订阅</button
-        ><button data-nav="history">◷　运行记录</button
-        ><button data-nav="runtime">⚙　运行时</button>
+        <button data-nav="profiles"><span class="nav-icon profiles-icon" aria-hidden="true"></span>配置文件</button>
+        <button data-nav="nodes"><span class="nav-icon nodes-icon" aria-hidden="true"></span>节点与订阅</button>
+        <button data-nav="history"><span class="nav-icon history-icon" aria-hidden="true"></span>运行记录</button>
+        <button data-nav="runtime"><span class="nav-icon runtime-icon" aria-hidden="true"></span>运行时</button>
       </nav>
       <div class="sidefoot">
         <i id="coreDot"></i><span id="coreLabel">正在连接管理器</span>
@@ -25,15 +25,15 @@
     <main>
       <header>
         <div>
-          <h1 id="title">浏览器 Profile</h1>
+          <h1 id="title">配置文件</h1>
           <p id="subtitle"></p>
         </div>
         <div id="actions"></div>
       </header>
       <div id="notice" role="status" hidden></div>
-      <section id="content" aria-live="polite"></section>
+      <section id="content" aria-labelledby="title"></section>
     </main>
-    <dialog id="dialog">
+    <dialog id="dialog" aria-labelledby="dialogTitle">
       <form id="form">
         <div class="modalhead">
           <h2 id="dialogTitle"></h2>
