@@ -1,8 +1,17 @@
-# Profile Harbor
+<p align="center"><img src="src-tauri/icons/icon.png" width="120" height="120" alt="Profile Harbor 应用图标"></p>
+<h1 align="center">Profile Harbor</h1>
+<p align="center">在 Mac 上同时管理五个 Chrome 配置文件，直接查看各自的出口 IP 和时区。</p>
+<p align="center">
+  <img src="https://img.shields.io/badge/macOS-15%2B-334155?style=flat-square" alt="macOS 15+">
+  <img src="https://img.shields.io/badge/Mac-Apple_Silicon-21695E?style=flat-square" alt="Apple Silicon">
+  <a href="https://github.com/ProvenceJake/profile-sandbox-browser/releases/tag/v0.9.3"><img src="https://img.shields.io/badge/prerelease-v0.9.3-526581?style=flat-square" alt="0.9.3 预发布版"></a>
+</p>
+<p align="center"><a href="README.md">English</a> · <strong>简体中文</strong></p>
+<p align="center"><a href="https://github.com/ProvenceJake/profile-sandbox-browser/releases/download/v0.9.3/Profile-Harbor-0.9.3-mac-arm64.zip"><strong>下载 macOS 版</strong></a> · <a href="https://github.com/ProvenceJake/profile-sandbox-browser/releases">版本记录</a> · <a href="https://github.com/ProvenceJake/profile-sandbox-browser/issues">反馈问题</a></p>
 
-[English](README.md) · **简体中文**
+---
 
-适用于 macOS 15 及以上、Apple Silicon 的多 Profile 浏览器管理器。每个 Profile 使用独立的 Chrome 进程和数据目录，最多五个同时运行。管理器使用 Rust 和 Tauri 2 开发，管理界面为中文，使用本地 WebView。
+每个配置文件使用独立的 Chrome 进程、数据目录和代理连接。停止后，列表会保留上次校验的出口 IP。管理器使用 Rust 和 Tauri 2 开发，管理界面为中文，使用本地 WebView。
 
 ## 安装与开始使用
 

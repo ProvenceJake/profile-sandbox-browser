@@ -1,8 +1,17 @@
-# Profile Harbor
+<p align="center"><img src="src-tauri/icons/icon.png" width="120" height="120" alt="Profile Harbor app icon"></p>
+<h1 align="center">Profile Harbor</h1>
+<p align="center">Manage up to five Chrome profiles on your Mac and see the exit IP and time zone for each one.</p>
+<p align="center">
+  <img src="https://img.shields.io/badge/macOS-15%2B-334155?style=flat-square" alt="macOS 15+">
+  <img src="https://img.shields.io/badge/Mac-Apple_Silicon-21695E?style=flat-square" alt="Apple Silicon">
+  <a href="https://github.com/ProvenceJake/profile-sandbox-browser/releases/tag/v0.9.3"><img src="https://img.shields.io/badge/prerelease-v0.9.3-526581?style=flat-square" alt="0.9.3 prerelease"></a>
+</p>
+<p align="center"><strong>English</strong> · <a href="README.zh-CN.md">简体中文</a></p>
+<p align="center"><a href="https://github.com/ProvenceJake/profile-sandbox-browser/releases/download/v0.9.3/Profile-Harbor-0.9.3-mac-arm64.zip"><strong>Download for macOS</strong></a> · <a href="https://github.com/ProvenceJake/profile-sandbox-browser/releases">Releases</a> · <a href="https://github.com/ProvenceJake/profile-sandbox-browser/issues">Report an issue</a></p>
 
-**English** · [简体中文](README.zh-CN.md)
+---
 
-Profile Harbor is a macOS menu bar app for running up to five Google Chrome profiles at once on an Apple Silicon Mac. Each profile has its own browser process, data directory, and proxy connection. The profile list shows its exit IP and time zone, including the last verified exit after you stop it.
+Each profile has its own Chrome process, data directory, and proxy connection. When you stop a profile, its last verified exit IP stays visible in the list.
 
 The manager is built with Rust and Tauri 2. Its local WebView interface is in Simplified Chinese. The steps below include the labels you’ll see in the app.
 
