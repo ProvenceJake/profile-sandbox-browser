@@ -4,10 +4,10 @@
 <p align="center">
   <img src="https://img.shields.io/badge/macOS-15%2B-334155?style=flat-square" alt="macOS 15+">
   <img src="https://img.shields.io/badge/Mac-Apple_Silicon-21695E?style=flat-square" alt="Apple Silicon">
-  <a href="https://github.com/ProvenceJake/profile-sandbox-browser/releases/tag/v0.10.0"><img src="https://img.shields.io/badge/prerelease-v0.10.0-526581?style=flat-square" alt="0.10.0 预发布版"></a>
+  <a href="https://github.com/ProvenceJake/profile-sandbox-browser/releases/tag/v0.10.1"><img src="https://img.shields.io/badge/prerelease-v0.10.1-526581?style=flat-square" alt="0.10.1 预发布版"></a>
 </p>
 <p align="center"><a href="README.md">English</a> · <strong>简体中文</strong></p>
-<p align="center"><a href="https://github.com/ProvenceJake/profile-sandbox-browser/releases/download/v0.10.0/Profile-Harbor-0.10.0-mac-arm64.zip"><strong>下载 macOS 版</strong></a> · <a href="https://github.com/ProvenceJake/profile-sandbox-browser/releases">版本记录</a> · <a href="https://github.com/ProvenceJake/profile-sandbox-browser/issues">反馈问题</a></p>
+<p align="center"><a href="https://github.com/ProvenceJake/profile-sandbox-browser/releases/download/v0.10.1/Profile-Harbor-0.10.1-mac-arm64.zip"><strong>下载 macOS 版</strong></a> · <a href="https://github.com/ProvenceJake/profile-sandbox-browser/releases">版本记录</a> · <a href="https://github.com/ProvenceJake/profile-sandbox-browser/issues">反馈问题</a></p>
 
 ---
 
@@ -15,13 +15,13 @@
 
 ## 浏览器内核
 
-新建配置默认使用 Obscura 交互预览。启动后在原生窗口的地址栏输入网址，按回车浏览。支持单页点击、文字输入、粘贴、滚动、前进、后退和刷新。按 ⌘L 定位到地址栏，按 ⌘R 刷新。首次使用时下载约 65 MiB 的官方 Apple Silicon 发行包，校验压缩包和可执行文件后保留约 69 MiB 的主程序。[Obscura 0.2.7](https://github.com/h4ckf0r0day/obscura/releases/tag/v0.2.7)
+新建配置默认使用 Google Chrome。若要体验 Obscura，可在配置编辑器中选择它，启动后在原生窗口的地址栏输入网址。支持单页点击、文字输入、粘贴、滚动、前进、后退和刷新。按 ⌘L 定位到地址栏，按 ⌘R 刷新。首次使用时下载约 65 MiB 的官方 Apple Silicon 发行包，校验压缩包和可执行文件后保留约 69 MiB 的主程序。[Obscura 0.2.7](https://github.com/h4ckf0r0day/obscura/releases/tag/v0.2.7)
 
-旧配置继续使用 Chrome。停止配置后可在「编辑 → 浏览器内核」中切换。两个内核分别保存登录数据。Obscura 可跨启动保留 Cookie 和 localStorage，IndexedDB 仅在会话中保留。每次启动都通过所选代理核验出口 IP、页面时区和首选语言。部分语言的默认日期或数字格式和复杂网页交互仍有兼容性限制。需要扩展、多个标签页或完整桌面网站兼容性时可选 Chrome。
+已有配置保留各自选择的内核。停止配置后可在「编辑 → 浏览器内核」中切换。两个内核分别保存登录数据。Obscura 可跨启动保留 Cookie 和 localStorage，IndexedDB 仅在会话中保留。每次启动都通过所选代理核验出口 IP、页面时区和首选语言。部分语言的默认日期或数字格式和复杂网页交互仍有兼容性限制。需要扩展、多个标签页或完整桌面网站兼容性时可选 Chrome。
 
 ## 安装与开始使用
 
-从 [macOS 预发布版本](https://github.com/ProvenceJake/profile-sandbox-browser/releases/tag/v0.10.0) 下载 ZIP，解压后打开 Profile Harbor.app。此版本使用临时签名，尚未获得 Developer ID 签名或 Apple 公证。
+从 [macOS 预发布版本](https://github.com/ProvenceJake/profile-sandbox-browser/releases/tag/v0.10.1) 下载 ZIP，解压后打开 Profile Harbor.app。此版本使用临时签名，尚未获得 Developer ID 签名或 Apple 公证。
 
 1. 在「节点与订阅」添加 HTTP/SOCKS5 节点，或导入含 proxies 列表的 Clash/Mihomo YAML 文件或订阅 URL。单个节点的其他受支持协议也可用 YAML 导入。来源中的名称用于在刷新后匹配节点。
 2. 在「配置文件」创建工作区并绑定节点。自动模式首次使用时下载 DB-IP 离线城市库，手动模式可按中文名称选择语言和城市时区，预览当地时间，也支持自定义语言标签、时区和坐标。浏览器与 Mac 共用实际时钟，网页按 Profile 时区显示当地时间。

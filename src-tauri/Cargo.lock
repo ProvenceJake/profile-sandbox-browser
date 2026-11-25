@@ -2862,7 +2862,7 @@ dependencies = [
 
 [[package]]
 name = "profile-harbor"
-version = "0.10.0"
+version = "0.10.1"
 dependencies = [
  "anyhow",
  "flate2",

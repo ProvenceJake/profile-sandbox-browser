@@ -4,10 +4,10 @@
 <p align="center">
   <img src="https://img.shields.io/badge/macOS-15%2B-334155?style=flat-square" alt="macOS 15+">
   <img src="https://img.shields.io/badge/Mac-Apple_Silicon-21695E?style=flat-square" alt="Apple Silicon">
-  <a href="https://github.com/ProvenceJake/profile-sandbox-browser/releases/tag/v0.10.0"><img src="https://img.shields.io/badge/prerelease-v0.10.0-526581?style=flat-square" alt="0.10.0 prerelease"></a>
+  <a href="https://github.com/ProvenceJake/profile-sandbox-browser/releases/tag/v0.10.1"><img src="https://img.shields.io/badge/prerelease-v0.10.1-526581?style=flat-square" alt="0.10.1 prerelease"></a>
 </p>
 <p align="center"><strong>English</strong> · <a href="README.zh-CN.md">简体中文</a></p>
-<p align="center"><a href="https://github.com/ProvenceJake/profile-sandbox-browser/releases/download/v0.10.0/Profile-Harbor-0.10.0-mac-arm64.zip"><strong>Download for macOS</strong></a> · <a href="https://github.com/ProvenceJake/profile-sandbox-browser/releases">Releases</a> · <a href="https://github.com/ProvenceJake/profile-sandbox-browser/issues">Report an issue</a></p>
+<p align="center"><a href="https://github.com/ProvenceJake/profile-sandbox-browser/releases/download/v0.10.1/Profile-Harbor-0.10.1-mac-arm64.zip"><strong>Download for macOS</strong></a> · <a href="https://github.com/ProvenceJake/profile-sandbox-browser/releases">Releases</a> · <a href="https://github.com/ProvenceJake/profile-sandbox-browser/issues">Report an issue</a></p>
 
 ---
 
@@ -17,13 +17,13 @@ The manager is built with Rust and Tauri 2. Its local WebView interface is in Si
 
 ## Browser engines
 
-New profiles default to the interactive Obscura preview. Enter a URL in its native window to browse a single page. The viewer supports clicking, typing, pasting, scrolling, back, forward, and reload. Use ⌘L to focus the address bar and ⌘R to reload. First use downloads the official Apple Silicon archive (about 65 MiB), verifies both the archive and executable, and retains the main executable (about 69 MiB). [Obscura 0.2.7](https://github.com/h4ckf0r0day/obscura/releases/tag/v0.2.7)
+New profiles open in Google Chrome by default. Select Obscura in the profile editor to try its single-page native viewer. The viewer supports clicking, typing, pasting, scrolling, back, forward, and reload. Use ⌘L to focus the address bar and ⌘R to reload. First use downloads the official Apple Silicon archive (about 65 MiB), verifies both the archive and executable, and retains the main executable (about 69 MiB). [Obscura 0.2.7](https://github.com/h4ckf0r0day/obscura/releases/tag/v0.2.7)
 
-Existing profiles keep Chrome. To switch, stop the profile and choose its engine under Edit → Browser engine (浏览器内核). Each engine has its own sign-in data. Obscura persists cookies and localStorage across restarts. IndexedDB lasts for the session. Startup checks verify the exit IP through the selected proxy, the page time zone, and the preferred language. Default date and number formats can differ for some locales, and complex sites may have interaction limitations. Chrome remains available for extensions, multiple tabs, and full desktop compatibility.
+Existing profiles keep their selected engine. To switch, stop the profile and choose its engine under Edit → Browser engine (浏览器内核). Each engine has its own sign-in data. Obscura persists cookies and localStorage across restarts. IndexedDB lasts for the session. Startup checks verify the exit IP through the selected proxy, the page time zone, and the preferred language. Default date and number formats can differ for some locales, and complex sites may have interaction limitations. Chrome remains available for extensions, multiple tabs, and full desktop compatibility.
 
 ## Install
 
-Requires macOS 15 or later on Apple Silicon. Download the ZIP from the [macOS prerelease](https://github.com/ProvenceJake/profile-sandbox-browser/releases/tag/v0.10.0), extract it, and open **Profile Harbor.app**. The current build uses an ad hoc signature. Developer ID signing and Apple notarization are pending.
+Requires macOS 15 or later on Apple Silicon. Download the ZIP from the [macOS prerelease](https://github.com/ProvenceJake/profile-sandbox-browser/releases/tag/v0.10.1), extract it, and open **Profile Harbor.app**. The current build uses an ad hoc signature. Developer ID signing and Apple notarization are pending.
 
 ## Use a profile
 

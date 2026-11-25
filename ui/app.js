@@ -368,7 +368,7 @@ function runtimePage() {
     "</small></span>" +
     button("chrome", "安装并使用固定版本") + (state.managed ? button("systemChrome","优先使用系统 Chrome") : "") +
     '</div><div class="row"><span>Obscura 0.2.7<br><small>' + (state.obscura ? "已安装" : "首次使用时下载") + '</small></span>' +
-    button("obscura", state.obscura ? "校验或修复" : "安装轻量内核") +
+    button("obscura", state.obscura ? "校验或修复" : "安装 Obscura") +
     '</div><div class="row"><span>离线城市库<br><small>IP Geolocation by DB-IP.com · CC BY 4.0 · ' +
     (state.geo ? "已安装" : "待下载") +
     "</small></span>" +
@@ -491,7 +491,7 @@ function editProfile(p) {
     p ? "编辑配置文件" : "新建配置文件",
     input("name", "名称", p?.name, "text", 'required maxlength="100"') +
       '<label>浏览器内核<select name="browser" id="browserKind">' +
-      options([{id:"obscura",name:"Obscura · 轻量交互预览"},{id:"chrome",name:"Google Chrome"}], p ? (p.browser || "chrome") : "obscura") +
+      options([{id:"chrome",name:"Google Chrome"},{id:"obscura",name:"Obscura · 交互预览"}], p?.browser || "chrome") +
       '</select></label><p id="engineHint" class="hint">单页浏览，支持点击、输入和滚动。首次使用下载约 65 MiB。与 Chrome 分开保存登录状态；部分网页格式和交互可能不同。</p>' +
       '<label>绑定节点<select name="node">' +
       nodeOptions(p?.node) +
