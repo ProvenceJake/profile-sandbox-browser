@@ -7,7 +7,7 @@ export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$PWD/.build/target}"
 mkdir -p .build dist
 stage=$(mktemp -d "$PWD/.build/package.XXXXXX")
 trap 'rm -rf "$stage"' EXIT
-version=0.9.3
+version=0.10.0
 core_version=1.19.33
 core_digest=060b64b0f2c9a310831db0fe4adb2878de67bfa606c311813c1f13966aa504b6
 core_archive="$PWD/.build/mihomo.gz"
@@ -21,6 +21,7 @@ app="$stage/Profile Harbor.app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources" "$stage/AppIcon.iconset"
 cp "$CARGO_TARGET_DIR/release/profile-harbor" "$app/Contents/MacOS/"
 xcrun clang -arch arm64 -mmacosx-version-min=15.0 -Os -Wall -Wextra -Werror native/core-guard.c -o "$app/Contents/MacOS/profile-harbor-guard"
+xcrun swiftc -O -target arm64-apple-macosx15.0 -module-cache-path "$PWD/.build/swift-cache" native/ObscuraConnection.swift native/ObscuraViewer.swift -o "$app/Contents/MacOS/profile-harbor-viewer"
 gzip -dc "$core_archive" > "$app/Contents/MacOS/mihomo"
 chmod +x "$app/Contents/MacOS/mihomo"
 cp -R resources/licenses "$app/Contents/Resources/"
@@ -37,7 +38,7 @@ cat > "$app/Contents/Info.plist" <<PLIST
 <key>CFBundleIdentifier</key><string>dev.provencejake.profileharbor</string>
 <key>CFBundleName</key><string>Profile Harbor</string>
 <key>CFBundleDisplayName</key><string>Profile Harbor</string>
-<key>CFBundleVersion</key><string>903</string>
+<key>CFBundleVersion</key><string>1000</string>
 <key>CFBundleShortVersionString</key><string>$version</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleIconFile</key><string>AppIcon</string>
@@ -47,6 +48,7 @@ cat > "$app/Contents/Info.plist" <<PLIST
 PLIST
 identity="${MACOS_SIGN_IDENTITY:--}"
 codesign --force --options runtime --sign "$identity" "$app/Contents/MacOS/profile-harbor-guard"
+codesign --force --options runtime --sign "$identity" "$app/Contents/MacOS/profile-harbor-viewer"
 codesign --force --options runtime --sign "$identity" "$app/Contents/MacOS/mihomo"
 codesign --force --options runtime --sign "$identity" "$app"
 codesign --verify --deep --strict "$app"

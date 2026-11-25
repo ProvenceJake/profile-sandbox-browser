@@ -85,12 +85,21 @@ impl Environment {
         Ok(())
     }
 }
+#[derive(Clone, Copy, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum BrowserKind {
+    #[default]
+    Chrome,
+    Obscura,
+}
 #[derive(Clone, Deserialize, Serialize)]
 pub struct Profile {
     pub id: String,
     pub name: String,
     pub node: String,
     pub auto: bool,
+    #[serde(default)]
+    pub browser: BrowserKind,
     #[serde(default)]
     pub env: Environment,
     #[serde(default)]

@@ -275,3 +275,45 @@ mod tests {
         Ok(())
     }
 }
+
+const OBSCURA_BINARY_SHA: &str = "d09acc26fb1c5b0ea2ef297f55ea2430f765395d8cfd2eda78fcb50458153195";
+pub fn obscura_path(root: &Path) -> PathBuf {
+    root.join("runtime/obscura-0.2.7/obscura")
+}
+fn check_obscura(path: &Path) -> Result<()> {
+    let mut h = Sha256::new();
+    io::copy(&mut File::open(path)?, &mut h)?;
+    ensure!(
+        format!("{:x}", h.finalize()) == OBSCURA_BINARY_SHA,
+        "Obscura 二进制校验失败"
+    );
+    Ok(())
+}
+pub fn verified_obscura(root: &Path) -> Result<PathBuf> {
+    let binary = obscura_path(root);
+    check_obscura(&binary)?;
+    Ok(binary)
+}
+pub fn install_obscura(root: &Path) -> Result<()> {
+    use std::os::unix::fs::PermissionsExt;
+    let dest = obscura_path(root);
+    if check_obscura(&dest).is_ok() {
+        return Ok(());
+    }
+    let dir = dest.parent().context("内核目录不可用")?;
+    fs::create_dir_all(dir)?;
+    let archive=fetch("https://github.com/h4ckf0r0day/obscura/releases/download/v0.2.7/obscura-aarch64-macos.tar.gz",
+        "fc7e73f23058f18d6d5be983d83b24ba374d12167677657a307a9476c0f5a7c1",dir,70_000_000)?;
+    let bin = tempfile::NamedTempFile::new_in(dir)?;
+    let status = Command::new("/usr/bin/tar")
+        .arg("-xOzf")
+        .arg(archive.path())
+        .arg("obscura")
+        .stdout(bin.reopen()?)
+        .status()?;
+    ensure!(status.success(), "无法解包 Obscura");
+    check_obscura(bin.path())?;
+    fs::set_permissions(bin.path(), fs::Permissions::from_mode(0o700))?;
+    bin.persist(dest)?;
+    Ok(())
+}

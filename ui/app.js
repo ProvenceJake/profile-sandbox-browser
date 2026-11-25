@@ -182,7 +182,7 @@ function profileCards() {
       <div class="cardhead">
         <div class="identity">
           <div class="avatar" aria-hidden="true">${e(Array.from(p.name)[0])}</div>
-          <div><h3>${e(p.name)}</h3><small>${e(node?.name || "绑定节点已移除")}${zone && p.env.locale ? " · " + e(p.env.locale) : ""}</small></div>
+          <div><h3>${e(p.name)}</h3><small>${e(node?.name || "绑定节点已移除")} · ${p.browser === "obscura" ? "Obscura" : "Chrome"}${zone && p.env.locale ? " · " + e(p.env.locale) : ""}</small></div>
         </div>
         <span class="pill ${e(p.state)}">${e(states[p.state])}</span>
       </div>
@@ -367,6 +367,8 @@ function runtimePage() {
     e(state.chrome ? state.chromePath : "尚未安装") +
     "</small></span>" +
     button("chrome", "安装并使用固定版本") + (state.managed ? button("systemChrome","优先使用系统 Chrome") : "") +
+    '</div><div class="row"><span>Obscura 0.2.7<br><small>' + (state.obscura ? "已安装" : "首次使用时下载") + '</small></span>' +
+    button("obscura", state.obscura ? "校验或修复" : "安装轻量内核") +
     '</div><div class="row"><span>离线城市库<br><small>IP Geolocation by DB-IP.com · CC BY 4.0 · ' +
     (state.geo ? "已安装" : "待下载") +
     "</small></span>" +
@@ -488,6 +490,9 @@ function editProfile(p) {
   modal(
     p ? "编辑配置文件" : "新建配置文件",
     input("name", "名称", p?.name, "text", 'required maxlength="100"') +
+      '<label>浏览器内核<select name="browser" id="browserKind">' +
+      options([{id:"obscura",name:"Obscura · 轻量交互预览"},{id:"chrome",name:"Google Chrome"}], p ? (p.browser || "chrome") : "obscura") +
+      '</select></label><p id="engineHint" class="hint">单页浏览，支持点击、输入和滚动。首次使用下载约 65 MiB。与 Chrome 分开保存登录状态；部分网页格式和交互可能不同。</p>' +
       '<label>绑定节点<select name="node">' +
       nodeOptions(p?.node) +
       '</select></label><label>地区环境<select name="mode" id="mode"><option value="auto">根据出口自动推导</option><option value="manual">手动设置</option></select></label><fieldset id="manual" aria-label="手动地区设置"><div class="pair">' +
@@ -510,6 +515,7 @@ function editProfile(p) {
         id: p?.id || "",
         name: d.name,
         node: d.node,
+        browser: d.browser,
         auto: d.mode === "auto",
         env: {
           zone: selected.zone,
@@ -521,6 +527,9 @@ function editProfile(p) {
       notice("Profile 已保存。");
     },
   );
+  const showEngineHint = () => { $("engineHint").hidden = $("browserKind").value !== "obscura"; };
+  $("browserKind").onchange = showEngineHint;
+  showEngineHint();
   $("mode").value = p?.auto === false ? "manual" : "auto";
   const change = () => {
     $("manual").hidden = $("mode").value === "auto";
@@ -772,6 +781,7 @@ document.addEventListener("click", async (ev) => {
       clone: "正在复制配置",
       geo: "正在下载并校验城市库",
       chrome: "正在安装并验证 Chrome",
+      obscura: "正在校验 Obscura 内核",
       refresh: "正在刷新订阅并复查受影响会话",
     }[a] || "正在处理",
   );

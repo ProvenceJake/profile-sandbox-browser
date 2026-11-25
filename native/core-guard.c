@@ -13,9 +13,11 @@ static int same_process(pid_t pid, uint64_t start) {
 }
 
 int main(int argc, char **argv) {
-    if (argc != 3) return 2;
+    if (argc != 2 && argc != 3) return 2;
     pid_t pid = (pid_t)strtol(argv[1], NULL, 10);
-    uint64_t start = strtoull(argv[2], NULL, 10);
+    struct rusage_info_v0 info;
+    if (proc_pid_rusage(pid, RUSAGE_INFO_V0, (rusage_info_t *)&info) != 0) return 2;
+    uint64_t start = argc == 3 ? strtoull(argv[2], NULL, 10) : info.ri_proc_start_abstime;
     if (pid <= 1 || start == 0) return 2;
     char discard[32];
     for (;;) {
