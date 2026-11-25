@@ -3,5 +3,3 @@ Corresponding source: https://github.com/MetaCubeX/mihomo/tree/v1.19.33
 Release binary: https://github.com/MetaCubeX/mihomo/releases/tag/v1.19.33
 IP Geolocation by DB-IP (https://db-ip.com), City Lite, CC BY 4.0. The city database is downloaded separately.
 Timezone boundary data from timezone-boundary-builder and OpenStreetMap contributors, ODbL 1.0, distributed via tzf-dist. See Timezone-data.txt.
-Obscura 0.2.7 (Apache-2.0) is downloaded separately from its official release.
-Source and license: https://github.com/h4ckf0r0day/obscura/tree/v0.2.7

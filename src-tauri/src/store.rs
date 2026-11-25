@@ -85,21 +85,12 @@ impl Environment {
         Ok(())
     }
 }
-#[derive(Clone, Copy, Default, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(rename_all = "lowercase")]
-pub enum BrowserKind {
-    #[default]
-    Chrome,
-    Obscura,
-}
 #[derive(Clone, Deserialize, Serialize)]
 pub struct Profile {
     pub id: String,
     pub name: String,
     pub node: String,
     pub auto: bool,
-    #[serde(default)]
-    pub browser: BrowserKind,
     #[serde(default)]
     pub env: Environment,
     #[serde(default)]
@@ -162,6 +153,12 @@ impl Store {
     pub fn open(root: PathBuf) -> Result<Self> {
         for folder in ["profiles", "trash", "runtime", "engine"] {
             fs::create_dir_all(root.join(folder))?;
+        }
+        // Retire the optional executable cached by 0.10.x without touching profile data.
+        let retired = root.join("runtime/obscura-0.2.7");
+        if fs::symlink_metadata(&retired).is_ok_and(|entry| entry.is_dir()) {
+            let _ = fs::remove_file(retired.join("obscura"));
+            let _ = fs::remove_dir(retired);
         }
         let db = Connection::open(root.join("harbor.sqlite3"))?;
         db.execute_batch("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;

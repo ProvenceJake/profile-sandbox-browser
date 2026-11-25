@@ -19,7 +19,9 @@
         <button data-nav="runtime"><span class="nav-icon runtime-icon" aria-hidden="true"></span>运行时</button>
       </nav>
       <div class="sidefoot">
-        <i id="coreDot"></i><span id="coreLabel">正在连接管理器</span>
+        <div class="capacity"><span>浏览器槽位</span><strong id="slotCount">—</strong></div>
+        <div id="slotMeter" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="core-state"><i id="coreDot"></i><span id="coreLabel">正在连接管理器</span></div>
       </div>
     </aside>
     <main>

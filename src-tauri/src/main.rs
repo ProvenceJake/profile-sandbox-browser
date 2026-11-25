@@ -1,5 +1,4 @@
 mod browser;
-mod interactive;
 mod manager;
 mod proxy;
 mod runtime;
@@ -39,22 +38,18 @@ async fn operate(
     tauri::async_runtime::spawn_blocking(move || {
         // Keep supervision and stopping other sessions responsive during large downloads.
         let result = (|| -> anyhow::Result<Value> {
-            if matches!(
-                op.as_str(),
-                "start" | "switch" | "geo" | "chrome" | "obscura"
-            ) {
-                let (root, auto, browser, missing_chrome) = {
+            if matches!(op.as_str(), "start" | "switch" | "geo" | "chrome") {
+                let (root, auto, missing_chrome) = {
                     let m = state.lock().map_err(|_| anyhow::anyhow!("管理器不可用"))?;
-                    let (auto, browser) = if matches!(op.as_str(), "start" | "switch") {
+                    let auto = if matches!(op.as_str(), "start" | "switch") {
                         let p = m.store.profile(manager::field(&payload, "id")?)?;
-                        (p.auto || payload["decision"] == "update", p.browser)
+                        p.auto || payload["decision"] == "update"
                     } else {
-                        (false, store::BrowserKind::Chrome)
+                        false
                     };
                     (
                         m.store.root.clone(),
                         auto,
-                        browser,
                         !runtime::chrome(&m.store).is_file(),
                     )
                 };
@@ -67,18 +62,7 @@ async fn operate(
                     let _ = app.emit("harbor-phase", "正在下载并校验离线城市库");
                     runtime::install_geo(&root)?;
                 }
-                if op == "obscura"
-                    || browser == store::BrowserKind::Obscura
-                        && !runtime::obscura_path(&root).is_file()
-                {
-                    let _ = app.emit("harbor-phase", "正在下载并验证 Obscura");
-                    runtime::install_obscura(&root)?;
-                }
-                if op == "chrome"
-                    || (!matches!(op.as_str(), "geo" | "obscura")
-                        && browser == store::BrowserKind::Chrome
-                        && missing_chrome)
-                {
+                if op == "chrome" || (op != "geo" && missing_chrome) {
                     let _ = app.emit("harbor-phase", "正在安装并验证 Google Chrome");
                     runtime::install_chrome(&root)?;
                 }
@@ -89,7 +73,7 @@ async fn operate(
                         .store
                         .setting_set("browser", "managed")?;
                 }
-                if matches!(op.as_str(), "geo" | "chrome" | "obscura") {
+                if matches!(op.as_str(), "geo" | "chrome") {
                     return Ok(serde_json::json!({"ok":true}));
                 }
             }

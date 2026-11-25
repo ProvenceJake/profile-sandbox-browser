@@ -4,41 +4,17 @@
   <style>
     :root {
       color-scheme: light dark;
-      font:
-        16px/1.6 -apple-system,
-        "PingFang SC",
-        sans-serif;
+      font: 16px/1.5 -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+      --bg: #f5f5f7; --surface: white; --ink: #1d1d1f; --secondary: #60616a; --line: #e7e7eb;
     }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: grid;
-      place-items: center;
-      background: #f4f7f3;
-      color: #1a3d39;
-    }
-    main {
-      max-width: 600px;
-      padding: 32px;
-    }
-    h1 {
-      font-size: clamp(32px, 5vw, 56px);
-      line-height: 1.15;
-      margin: 12px 0;
-      overflow-wrap: anywhere;
-    }
-    small {
-      color: #26705c;
-    }
-    time { display: block; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: var(--bg); color: var(--ink); }
+    main { box-sizing: border-box; width: min(560px, calc(100% - 32px)); padding: clamp(24px, 5vw, 48px); background: var(--surface); border: 1px solid var(--line); border-radius: 24px; }
+    small { color: var(--secondary); font-weight: 600; }
+    h1 { font-size: clamp(32px, 5vw, 48px); letter-spacing: -.035em; line-height: 1.15; margin: 10px 0 24px; overflow-wrap: anywhere; }
+    #region { margin: 0; padding-top: 20px; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
+    time { display: block; margin-top: 4px; color: var(--secondary); font-variant-numeric: tabular-nums; }
     @media (prefers-color-scheme: dark) {
-      body {
-        background: #172a29;
-        color: #e6f0e9;
-      }
-      small {
-        color: #90cfb1;
-      }
+      :root { --bg: #19191b; --surface: #29292c; --ink: #f5f5f7; --secondary: #abadb5; --line: #3a3a3d; }
     }
   </style>
   <main>

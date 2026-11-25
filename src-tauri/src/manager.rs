@@ -1,9 +1,8 @@
 use crate::{
     browser::Browser,
-    interactive::Interactive,
     proxy::{Core, Gate},
     runtime,
-    store::{self, BrowserKind, Profile, Store},
+    store::{self, Profile, Store},
     supervisor::{self, Sampler},
 };
 use anyhow::{anyhow, bail, ensure, Context, Result};
@@ -16,39 +15,8 @@ use std::{
     sync::mpsc::Sender,
     time::{Duration, Instant},
 };
-enum Session {
-    Chrome(Browser),
-    Obscura(Interactive),
-}
-impl Session {
-    fn child(&mut self) -> &mut std::process::Child {
-        match self {
-            Self::Chrome(b) => &mut b.child,
-            Self::Obscura(b) => &mut b.child,
-        }
-    }
-    fn pid(&self) -> u32 {
-        match self {
-            Self::Chrome(b) => b.child.id(),
-            Self::Obscura(b) => b.child.id(),
-        }
-    }
-    fn tabs(&self) -> Result<usize> {
-        match self {
-            Self::Chrome(b) => b.tabs(),
-            Self::Obscura(_) => Ok(1),
-        }
-    }
-    #[cfg(test)]
-    fn chrome(&self) -> &Browser {
-        match self {
-            Self::Chrome(b) => b,
-            _ => panic!("Chrome fixture required"),
-        }
-    }
-}
 struct Live {
-    browser: Session,
+    browser: Browser,
     gate: Gate,
     slot: usize,
     launch: String,
@@ -129,7 +97,7 @@ impl Manager {
                 let _ = c.reject(l.slot);
                 c.idle = Instant::now();
             }
-            let pid = l.browser.pid();
+            let pid = l.browser.child.id();
             let _ = self.store.db.execute(
                 "UPDATE launches SET end_reason=? WHERE id=?",
                 params![reason, l.launch],
@@ -178,7 +146,7 @@ impl Manager {
             profiles.push(v);
         }
         Ok(
-            json!({"profiles":profiles,"trash":self.store.records("SELECT id,json_extract(data,'$.name') AS name,deleted FROM profiles WHERE deleted IS NOT NULL ORDER BY deleted DESC")?,"nodes":self.store.nodes()?,"sources":self.store.sources()?,"obscura":runtime::obscura_path(&self.store.root).is_file(),"chrome":runtime::chrome(&self.store).is_file(),"chromePath":runtime::chrome(&self.store),"managed":self.store.setting("browser","system")=="managed","geo":self.store.root.join("runtime/city.mmdb").is_file(),"core":self.core.is_some(),"echo":self.store.setting("echo",runtime::TRACE),"fallback":self.store.setting("fallback",runtime::IPIFY),"events":self.store.records("SELECT ts,profile,detail FROM events ORDER BY rowid DESC LIMIT 80")?,"launches":self.store.records("SELECT profile,started,ready_ms,verify_ms,ip,country,slot,end_reason FROM launches ORDER BY rowid DESC LIMIT 80")?}),
+            json!({"profiles":profiles,"trash":self.store.records("SELECT id,json_extract(data,'$.name') AS name,deleted FROM profiles WHERE deleted IS NOT NULL ORDER BY deleted DESC")?,"nodes":self.store.nodes()?,"sources":self.store.sources()?,"chrome":runtime::chrome(&self.store).is_file(),"chromePath":runtime::chrome(&self.store),"managed":self.store.setting("browser","system")=="managed","geo":self.store.root.join("runtime/city.mmdb").is_file(),"core":self.core.is_some(),"echo":self.store.setting("echo",runtime::TRACE),"fallback":self.store.setting("fallback",runtime::IPIFY),"events":self.store.records("SELECT ts,profile,detail FROM events ORDER BY rowid DESC LIMIT 80")?,"launches":self.store.records("SELECT profile,started,ready_ms,verify_ms,ip,country,slot,end_reason FROM launches ORDER BY rowid DESC LIMIT 80")?}),
         )
     }
     pub fn act(&mut self, op: &str, v: Value) -> Result<Value> {
@@ -214,7 +182,6 @@ impl Manager {
                         name: String::new(),
                         node: String::new(),
                         auto: true,
-                        browser: BrowserKind::Chrome,
                         env: Default::default(),
                         ip: String::new(),
                         country: String::new(),
@@ -226,9 +193,6 @@ impl Manager {
                     self.idle(key)?;
                     self.store.profile(key)?
                 };
-                if let Some(kind) = v.get("browser") {
-                    p.browser = serde_json::from_value(kind.clone())?;
-                }
                 p.name = store::name(field(&v, "name")?)?;
                 p.node = node.into();
                 p.auto = v["auto"].as_bool().context("请选择环境模式")?;
@@ -469,19 +433,19 @@ impl Manager {
             p.env.validate()?;
             let verify_ms = started.elapsed().as_millis() as i64;
             let exe = runtime::chrome(&self.store);
-            if p.browser == BrowserKind::Chrome {
-                if !exe.is_file() {
-                    runtime::install_chrome(&self.store.root)?;
-                }
-                let ver = runtime::verify_chrome(&runtime::chrome(&self.store))?;
-                if !p.version.is_empty() {
-                    ensure!(
-                        runtime::version(&ver)? >= runtime::version(&p.version)?,
-                        "此 Profile 曾使用较新的 Chrome，禁止降级"
-                    );
-                }
-                p.version = ver;
+            if !exe.is_file() {
+                runtime::install_chrome(&self.store.root)?;
             }
+            (self.phase)(key, "正在验证浏览器签名及版本");
+            let exe = runtime::chrome(&self.store);
+            let ver = runtime::verify_chrome(&exe)?;
+            if !p.version.is_empty() {
+                ensure!(
+                    runtime::version(&ver)? >= runtime::version(&p.version)?,
+                    "此 Profile 曾使用较新的 Chrome，禁止降级"
+                );
+            }
+            p.version = ver;
             p.node = node.into();
             p.ip = ip.to_string();
             p.country = country;
@@ -491,9 +455,8 @@ impl Manager {
             let mut guard = self.store.profile(key)?;
             guard.version = p.version.clone();
             self.store.save(&guard)?;
-            let needs_restart = self.live.get(key).is_some_and(|l| match &l.browser {
-                Session::Chrome(b) => b.env.zone != p.env.zone || b.env.locale != p.env.locale,
-                Session::Obscura(_) => true,
+            let needs_restart = self.live.get(key).is_some_and(|l| {
+                l.browser.env.zone != p.env.zone || l.browser.env.locale != p.env.locale
             });
             if needs_restart {
                 self.end(key, "地区变更，重新启动浏览器");
@@ -501,12 +464,9 @@ impl Manager {
             }
             (self.phase)(key, "正在检查浏览器出口、时区和语言");
             if let Some(l) = self.live.get_mut(key) {
-                let Session::Chrome(browser) = &mut l.browser else {
-                    bail!("Obscura 会话需要重新启动")
-                };
-                browser.set_location(&p.env)?;
+                l.browser.set_location(&p.env)?;
                 l.gate.set(Some(port));
-                browser.check(&url, ip)?;
+                l.browser.check(&url, ip)?;
                 l.paused = false;
                 self.store.db.execute(
                     "UPDATE launches SET ip=?,country=? WHERE id=?",
@@ -516,25 +476,14 @@ impl Manager {
                 let gate = Gate::new()?;
                 gate.set(Some(port));
                 let dir = self.store.root.join("profiles").join(key);
-                let browser = match p.browser {
-                    BrowserKind::Chrome => {
-                        let b =
-                            Browser::launch(&runtime::chrome(&self.store), &dir, &p, gate.port)?;
-                        b.check(&url, ip)?;
-                        b.ready_page(&p)?;
-                        Session::Chrome(b)
-                    }
-                    BrowserKind::Obscura => Session::Obscura(Interactive::launch(
-                        self.engine.parent().context("缺少辅助程序目录")?,
-                        &self.store.root,
-                        &p,
-                        gate.port,
-                        &url,
-                        ip,
-                    )?),
-                };
-                let pid = browser.pid();
+                let browser = Browser::launch(&exe, &dir, &p, gate.port)?;
+                let pid = browser.child.id();
                 self.track(pid, &dir)?;
+                if let Err(e) = browser.check(&url, ip).and_then(|_| browser.ready_page(&p)) {
+                    drop(browser);
+                    self.forget(pid);
+                    return Err(e);
+                }
                 let launch = store::id();
                 let ms = started.elapsed().as_millis() as i64;
                 self.store.db.execute("INSERT INTO launches(id,profile,started,ready_ms,verify_ms,ip,country,slot) VALUES(?,?,?,?,?,?,?,?)",params![launch,key,p.used,ms,verify_ms,p.ip,p.country,slot+1])?;
@@ -572,7 +521,7 @@ impl Manager {
             .iter_mut()
             .filter_map(|(k, l)| {
                 l.browser
-                    .child()
+                    .child
                     .try_wait()
                     .ok()
                     .flatten()
@@ -637,7 +586,7 @@ impl Manager {
         if self.sampled.elapsed() > Duration::from_secs(10) {
             self.sampled = Instant::now();
             for l in self.live.values_mut() {
-                let (memory, cpu) = l.sample.sample(l.browser.pid() as i32);
+                let (memory, cpu) = l.sample.sample(l.browser.child.id() as i32);
                 let tabs = l.browser.tabs().unwrap_or(0);
                 l.stats["memory"] = json!(memory);
                 l.stats["cpu"] = json!(cpu);
@@ -663,55 +612,14 @@ mod tests {
     use super::*;
     use std::sync::mpsc;
     #[test]
-    #[ignore = "requires a working local HTTP proxy, Obscura and the packaged viewer"]
-    fn interactive_profile_flow() -> Result<()> {
-        let port = std::env::var("HARBOR_TEST_HTTP_PROXY_PORT")?.parse::<u16>()?;
-        let temp = tempfile::tempdir()?;
-        let store = Store::open(temp.path().to_path_buf())?;
-        let binary = runtime::obscura_path(temp.path());
-        fs::create_dir_all(binary.parent().unwrap())?;
-        if let Ok(src) = std::env::var("HARBOR_TEST_OBSCURA") {
-            fs::copy(src, &binary)?;
-        } else {
-            runtime::install_obscura(temp.path())?;
-        }
-        let (tx, _rx) = mpsc::channel();
-        let mut manager = Manager::new(store, tx, std::env::var("HARBOR_TEST_ENGINE")?.into())?;
-        let source = store::id();
-        let result = (|| -> Result<()> {
-            let node = json!({"name":"Fixture","type":"http","server":"127.0.0.1","port":port});
-            manager.act(
-                "source",
-                json!({"id":source,"name":"Obscura fixture","yaml":node.to_string()}),
-            )?;
-            let nodes = manager.store.nodes()?;
-            let node = &nodes[0]["id"];
-            manager.act("save",json!({"name":"Obscura smoke test","node":node,"browser":"obscura","auto":false,"env":{"locale":"ja-JP","zone":"Asia/Tokyo","lat":35.68,"lng":139.69}}))?;
-            let profile = manager.store.profiles()?.remove(0).id;
-            manager.act("start", json!({"id":profile}))?;
-            let initial = manager.live[&profile].browser.pid();
-            let snapshot = manager.snapshot()?;
-            assert_eq!(snapshot["profiles"][0]["state"], "Running");
-            assert!(snapshot["profiles"][0]["ip"]
-                .as_str()
-                .unwrap()
-                .parse::<std::net::IpAddr>()
-                .is_ok());
-            manager.act("switch", json!({"id":profile,"node":node}))?;
-            assert_ne!(manager.live[&profile].browser.pid(), initial);
-            manager.act("stop", json!({"id":profile}))?;
-            assert!(manager.live.is_empty());
-            Ok(())
-        })();
-        manager.shutdown();
-        manager.store.remove_source(&source)?;
-        result
-    }
-    #[test]
     #[ignore = "requires macOS Chrome, Keychain, local fixture nodes and bundled Mihomo; run tests/desktop.mjs"]
     fn desktop_flow() -> Result<()> {
         let temp = tempfile::tempdir()?;
+        let retired = temp.path().join("runtime/obscura-0.2.7");
+        fs::create_dir_all(&retired)?;
+        fs::write(retired.join("obscura"), b"retired runtime fixture")?;
         let store = Store::open(temp.path().to_path_buf())?;
+        assert!(!retired.exists());
         let (tx, _rx) = mpsc::channel();
         let engine = std::env::var("HARBOR_TEST_ENGINE").context("set HARBOR_TEST_ENGINE")?;
         let mut m = Manager::new(store, tx, engine.into())?;
@@ -741,6 +649,13 @@ mod tests {
             for (i, (zone, language)) in environments.into_iter().enumerate() {
                 m.act("save",json!({"name":format!("Browser {i}"),"node":node(i),"auto":false,"env":{"zone":zone,"locale":language,"lat":35.68,"lng":139.69}}))?;
                 let id = m.store.profiles()?.last().unwrap().id.clone();
+                if i == 0 {
+                    // Simulate an existing configuration saved by the two-engine preview.
+                    m.store.db.execute(
+                        "UPDATE profiles SET data=json_set(data,'$.browser','obscura') WHERE id=?",
+                        [&id],
+                    )?;
+                }
                 m.act("start", json!({"id":id}))?;
                 assert!(m.live.contains_key(&id));
                 ids.push(id);
@@ -748,7 +663,6 @@ mod tests {
             for id in &ids {
                 m.live[id]
                     .browser
-                    .chrome()
                     .audit_locales(&format!("http://localhost:{}/", ports[0]))?;
             }
             let k = &ids[0];
@@ -758,16 +672,14 @@ mod tests {
             assert_eq!(m.live.len(), 5);
             m.live[k]
                 .browser
-                .chrome()
                 .audit_ice(&format!("http://localhost:{}/", ports[0]))?;
             let hostname = format!("{}.harbor-probe.invalid", store::id());
             m.live[k]
                 .browser
-                .chrome()
                 .check(&format!("http://{hostname}/trace"), "9.9.9.1".parse()?)?;
-            let original = m.live[k].browser.pid();
+            let original = m.live[k].browser.child.id();
             m.act("switch", json!({"id":k,"node":node(1)}))?;
-            assert_eq!(original, m.live[k].browser.pid());
+            assert_eq!(original, m.live[k].browser.child.id());
             let confirm = m.act("switch", json!({"id":k,"node":node(2)}))?;
             assert_eq!(confirm["confirm"], true);
             assert!(m.live[k].paused);
@@ -791,9 +703,8 @@ mod tests {
             assert_eq!(direct, "reachable direct IPv6 origin");
             assert!(m.live[k]
                 .browser
-                .chrome()
                 .navigation_blocked(&format!("http://[::1]:{v6}/"))?);
-            assert!(m.live[k].browser.chrome().navigation_blocked(&echoes)?);
+            assert!(m.live[k].browser.navigation_blocked(&echoes)?);
             m.tick()?;
             assert_eq!(m.live.len(), 5);
             assert!(!m.live[k].paused);
@@ -830,7 +741,7 @@ mod tests {
         m.act("start", json!({"id":p.id}))?;
         let pids = [
             m.core.as_ref().unwrap().child.id(),
-            m.live[&p.id].browser.pid(),
+            m.live[&p.id].browser.child.id(),
         ];
         store::atomic(&root.join("ready.json"), &serde_json::to_vec(&pids)?)?;
         std::thread::sleep(Duration::from_secs(60));

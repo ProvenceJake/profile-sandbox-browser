@@ -22,6 +22,7 @@ let state,
   activity = "launches",
   busy = false,
   filter = "",
+  profileScope = "all",
   submitAction,
   cancelAction;
 const time = (epoch) =>
@@ -161,9 +162,10 @@ const info = (label, value) =>
   '<div><small class="detail">' + e(label) + "</small>" + e(value) + "</div>";
 function profileCards() {
   const items = state.profiles.filter((p) =>
-    p.name.toLowerCase().includes(filter.toLowerCase()),
+    (profileScope === "all" || p.state === "Running") &&
+    p.name.toLowerCase().includes(filter.trim().toLowerCase()),
   );
-  if (!items.length) return empty("没有匹配的配置文件", "可以尝试其他名称。");
+  if (!items.length) return filter.trim() ? empty("没有匹配的配置文件", "试试其他名称。") : empty("没有运行中的配置", "启动后可在这里查看出口和资源占用。");
   return items.map((p) => {
     const live = p.state === "Running";
     const active = live || p.state === "Paused";
@@ -182,19 +184,22 @@ function profileCards() {
       <div class="cardhead">
         <div class="identity">
           <div class="avatar" aria-hidden="true">${e(Array.from(p.name)[0])}</div>
-          <div><h3>${e(p.name)}</h3><small>${e(node?.name || "绑定节点已移除")} · ${p.browser === "obscura" ? "Obscura" : "Chrome"}${zone && p.env.locale ? " · " + e(p.env.locale) : ""}</small></div>
+          <div><h3>${e(p.name)}</h3><small>${e(node?.name || "绑定节点已移除")}${zone && p.env.locale ? " · " + e(p.env.locale) : ""}</small></div>
         </div>
-        <span class="pill ${e(p.state)}">${e(states[p.state])}</span>
+        <details class="more" name="profile-actions" data-profile="${e(p.id)}"><summary aria-label="${e(p.name)}的更多操作">更多操作</summary><div class="rowactions">${extra}</div></details>
       </div>
       <dl class="network-fields">
         <div><dt>${ipLabel}</dt><dd${p.ip ? "" : ' class="pending"'}>${p.ip ? e(p.ip).replaceAll(":", ":<wbr>") : "待启动校验"}</dd></div>
         <div><dt>${zoneLabel}</dt><dd${zone ? "" : ' class="pending"'}>${e(zone || "待出口校验")}</dd></div>
       </dl>
       <div class="profile-controls">
-        ${active ? button("stop", "停止", p.id) : button("start", "启动", p.id, "launch")}
-        <details class="more" name="profile-actions" data-profile="${e(p.id)}"><summary aria-label="${e(p.name)}的更多操作">更多操作</summary><div class="rowactions">${extra}</div></details>
+        <div class="profile-health">
+          <span class="pill ${e(p.state)}">${e(states[p.state])}</span>
+          ${p.metrics ? '<small class="profile-metrics">' + e(Math.round(p.metrics.memory)) + ' MB · CPU ' + e(p.metrics.cpu.toFixed(1)) + '% · ' + e(p.metrics.tabs) + ' 个标签页</small>' : ""}
+        </div>
+        ${active ? button("stop", "停止", p.id, "stop-profile") : button("start", "启动", p.id, "launch")}
       </div>
-      ${p.metrics ? '<small class="profile-metrics">' + e(Math.round(p.metrics.memory)) + ' MB · CPU ' + e(p.metrics.cpu.toFixed(1)) + '% · ' + e(p.metrics.tabs) + ' 个标签页</small>' : ""}
+
       ${p.error ? '<p class="error">' + e(p.error) + "</p>" : ""}
     </article>`;
   }).join("");
@@ -207,8 +212,12 @@ function profilePage() {
       state.nodes.length ? "new" : "addSource",
       state.nodes.length ? "创建配置文件" : "先添加节点",
     );
-  return '<div class="toolbar profile-toolbar"><label class="search-box"><input id="search" type="search" placeholder="搜索配置文件" aria-label="搜索配置文件" value="' +
-    e(filter) + '"></label></div><div id="cards">' + profileCards() + "</div>";
+  const scopes = [["all", "全部"], ["running", "运行中"]].map(([key, label]) =>
+    `<button type="button" data-scope="${key}" aria-pressed="${profileScope === key}">${label}</button>`
+  ).join("");
+  return `<div class="toolbar profile-toolbar"><div class="segments" role="group" aria-label="筛选配置文件">${scopes}</div>
+    <label class="search-box"><input id="search" type="search" placeholder="搜索配置名称" aria-label="搜索配置文件" value="${e(filter)}"></label></div>
+    <div id="cards">${profileCards()}</div>`;
 }
 function nodesPage() {
   if (!state.sources.length)
@@ -255,7 +264,7 @@ function historyPage() {
   const launch = activity === "launches",
     rows = state[activity];
   let html =
-    '<div class="toolbar"><div>' +
+    '<div class="toolbar"><div class="segments">' +
     button("launches", "启动记录", "", "tab " + (launch ? "selected" : "")) +
     button(
       "metrics",
@@ -367,8 +376,6 @@ function runtimePage() {
     e(state.chrome ? state.chromePath : "尚未安装") +
     "</small></span>" +
     button("chrome", "安装并使用固定版本") + (state.managed ? button("systemChrome","优先使用系统 Chrome") : "") +
-    '</div><div class="row"><span>Obscura 0.2.7<br><small>' + (state.obscura ? "已安装" : "首次使用时下载") + '</small></span>' +
-    button("obscura", state.obscura ? "校验或修复" : "安装 Obscura") +
     '</div><div class="row"><span>离线城市库<br><small>IP Geolocation by DB-IP.com · CC BY 4.0 · ' +
     (state.geo ? "已安装" : "待下载") +
     "</small></span>" +
@@ -393,13 +400,15 @@ function draw() {
     ["Running", "Paused"].includes(p.state),
   ).length;
   const desc = {
-    profiles: state.profiles.length + " 个配置文件 · 已占用 " + running + " / 5 个槽位",
+    profiles: state.profiles.length + " 个配置文件 · " + state.nodes.length + " 个代理节点",
     nodes: state.sources.length + " 个来源 · " + state.nodes.length + " 个节点",
     history: "查看启动耗时、出口校验和故障事件",
     runtime: "管理本机浏览器、离线数据和出口校验服务",
   };
   $("title").textContent = names[view];
   $("subtitle").textContent = desc[view];
+  $("slotCount").textContent = running + " / 5";
+  document.querySelectorAll("#slotMeter i").forEach((slot, i) => slot.classList.toggle("used", i < running));
   $("coreDot").classList.toggle("on", state.core);
   $("coreLabel").textContent = state.core ? "代理内核运行中" : "代理内核待机";
   document
@@ -490,9 +499,6 @@ function editProfile(p) {
   modal(
     p ? "编辑配置文件" : "新建配置文件",
     input("name", "名称", p?.name, "text", 'required maxlength="100"') +
-      '<label>浏览器内核<select name="browser" id="browserKind">' +
-      options([{id:"chrome",name:"Google Chrome"},{id:"obscura",name:"Obscura · 交互预览"}], p?.browser || "chrome") +
-      '</select></label><p id="engineHint" class="hint">单页浏览，支持点击、输入和滚动。首次使用下载约 65 MiB。与 Chrome 分开保存登录状态；部分网页格式和交互可能不同。</p>' +
       '<label>绑定节点<select name="node">' +
       nodeOptions(p?.node) +
       '</select></label><label>地区环境<select name="mode" id="mode"><option value="auto">根据出口自动推导</option><option value="manual">手动设置</option></select></label><fieldset id="manual" aria-label="手动地区设置"><div class="pair">' +
@@ -515,7 +521,6 @@ function editProfile(p) {
         id: p?.id || "",
         name: d.name,
         node: d.node,
-        browser: d.browser,
         auto: d.mode === "auto",
         env: {
           zone: selected.zone,
@@ -527,9 +532,6 @@ function editProfile(p) {
       notice("Profile 已保存。");
     },
   );
-  const showEngineHint = () => { $("engineHint").hidden = $("browserKind").value !== "obscura"; };
-  $("browserKind").onchange = showEngineHint;
-  showEngineHint();
   $("mode").value = p?.auto === false ? "manual" : "auto";
   const change = () => {
     $("manual").hidden = $("mode").value === "auto";
@@ -711,6 +713,12 @@ document.addEventListener("click", async (ev) => {
     draw();
     return;
   }
+  if (b.dataset.scope) {
+    profileScope = b.dataset.scope;
+    document.querySelectorAll("[data-scope]").forEach((item) => item.setAttribute("aria-pressed", String(item === b)));
+    $("cards").innerHTML = profileCards();
+    return;
+  }
   const a = b.dataset.action,
     id = b.dataset.id;
   if (!a || busy || !state) return;
@@ -781,7 +789,6 @@ document.addEventListener("click", async (ev) => {
       clone: "正在复制配置",
       geo: "正在下载并校验城市库",
       chrome: "正在安装并验证 Chrome",
-      obscura: "正在校验 Obscura 内核",
       refresh: "正在刷新订阅并复查受影响会话",
     }[a] || "正在处理",
   );
