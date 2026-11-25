@@ -4,10 +4,10 @@
 <p align="center">
   <img src="https://img.shields.io/badge/macOS-15%2B-334155?style=flat-square" alt="macOS 15+">
   <img src="https://img.shields.io/badge/Mac-Apple_Silicon-21695E?style=flat-square" alt="Apple Silicon">
-  <a href="https://github.com/ProvenceJake/profile-sandbox-browser/releases/tag/v0.11.0"><img src="https://img.shields.io/badge/prerelease-v0.11.0-526581?style=flat-square" alt="0.11.0 prerelease"></a>
+  <a href="https://github.com/ProvenceJake/profile-sandbox-browser/releases/tag/v0.11.1"><img src="https://img.shields.io/badge/prerelease-v0.11.1-526581?style=flat-square" alt="0.11.1 prerelease"></a>
 </p>
 <p align="center"><strong>English</strong> · <a href="README.zh-CN.md">简体中文</a></p>
-<p align="center"><a href="https://github.com/ProvenceJake/profile-sandbox-browser/releases/download/v0.11.0/Profile-Harbor-0.11.0-mac-arm64.zip"><strong>Download for macOS</strong></a> · <a href="https://github.com/ProvenceJake/profile-sandbox-browser/releases">Releases</a> · <a href="https://github.com/ProvenceJake/profile-sandbox-browser/issues">Report an issue</a></p>
+<p align="center"><a href="https://github.com/ProvenceJake/profile-sandbox-browser/releases/download/v0.11.1/Profile-Harbor-0.11.1-mac-arm64.zip"><strong>Download for macOS</strong></a> · <a href="https://github.com/ProvenceJake/profile-sandbox-browser/releases">Releases</a> · <a href="https://github.com/ProvenceJake/profile-sandbox-browser/issues">Report an issue</a></p>
 
 ---
 
@@ -19,7 +19,7 @@ The manager is built with Rust and Tauri 2. Its local WebView interface is in Si
 
 ## Install
 
-Requires macOS 15 or later on Apple Silicon. Download the ZIP from the [macOS prerelease](https://github.com/ProvenceJake/profile-sandbox-browser/releases/tag/v0.11.0), extract it, and open **Profile Harbor.app**. The current build uses an ad hoc signature. Developer ID signing and Apple notarization are pending.
+Requires macOS 15 or later on Apple Silicon. Download the ZIP from the [macOS prerelease](https://github.com/ProvenceJake/profile-sandbox-browser/releases/tag/v0.11.1), extract it, and open **Profile Harbor.app**. The current build uses an ad hoc signature. Developer ID signing and Apple notarization are pending.
 
 ## Use a profile
 

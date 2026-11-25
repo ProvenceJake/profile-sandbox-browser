@@ -7,7 +7,7 @@ export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$PWD/.build/target}"
 mkdir -p .build dist
 stage=$(mktemp -d "$PWD/.build/package.XXXXXX")
 trap 'rm -rf "$stage"' EXIT
-version=0.11.0
+version=0.11.1
 core_version=1.19.33
 core_digest=060b64b0f2c9a310831db0fe4adb2878de67bfa606c311813c1f13966aa504b6
 core_archive="$PWD/.build/mihomo.gz"
@@ -37,7 +37,7 @@ cat > "$app/Contents/Info.plist" <<PLIST
 <key>CFBundleIdentifier</key><string>dev.provencejake.profileharbor</string>
 <key>CFBundleName</key><string>Profile Harbor</string>
 <key>CFBundleDisplayName</key><string>Profile Harbor</string>
-<key>CFBundleVersion</key><string>1100</string>
+<key>CFBundleVersion</key><string>1101</string>
 <key>CFBundleShortVersionString</key><string>$version</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleIconFile</key><string>AppIcon</string>

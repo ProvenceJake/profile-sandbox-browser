@@ -155,7 +155,8 @@ fn main() {
                 MenuItem::with_id(app, "quit", "停止所有 Profile 并退出", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&open, &quit])?;
             TrayIconBuilder::new()
-                .icon(app.default_window_icon().expect("app icon").clone())
+                .icon(tauri::include_image!("icons/tray.png"))
+                .icon_as_template(true)
                 .tooltip("Profile Harbor")
                 .menu(&menu)
                 .on_menu_event(|app, e| match e.id.as_ref() {
